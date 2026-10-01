@@ -8,6 +8,7 @@ from app.integrations.indeed_adapter import IndeedAdapter
 from app.integrations.linkedin_adapter import LinkedInAdapter
 from app.integrations.mygreenhouse_adapter import MyGreenhouseAdapter
 from app.integrations.glassdoor_adapter import GlassdoorAdapter
+from app.integrations.adzuna_adapter import AdzunaAdapter
 
 # Registry of all adapters — extend this list to add new portals
 _ADAPTERS: dict[str, JobPortalAdapter] = {
@@ -15,6 +16,7 @@ _ADAPTERS: dict[str, JobPortalAdapter] = {
     "linkedin":     LinkedInAdapter(),
     "mygreenhouse": MyGreenhouseAdapter(),
     "glassdoor":    GlassdoorAdapter(),
+    "adzuna":       AdzunaAdapter(),
 }
 
 

@@ -58,3 +58,7 @@ data/email_config.json
 
 # Streamlit runtime data
 .streamlit/secrets.toml
+
+# Daily scout outputs (resumes are delivered as private workflow artifacts)
+output/
+site/

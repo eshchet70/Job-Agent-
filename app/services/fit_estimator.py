@@ -38,6 +38,53 @@ SENIORITY_SCORES: dict[str, int] = {
 
 EXCLUDED_DOMAINS = {"amazon", "cgi"}
 
+# jd_parser emits its own labels; map them onto the score tables above.
+ROLE_FAMILY_ALIASES: dict[str, str] = {
+    "technical program management": "Technical Program Manager",
+    "portfolio management": "Portfolio Manager",
+    "ai/data program": "AI / Data Program Manager",
+    "engineering operations": "Engineering Operations",
+    "technology transformation": "Technical Program Manager",
+}
+SENIORITY_ALIASES: dict[str, str] = {
+    "principal": "Principal / Distinguished",
+    "senior": "Senior",
+    "lead/director": "Director+",
+    "junior": "Junior",
+}
+
+# Title phrases that signal the avoid list (matched as whole phrases, not words).
+AVOID_TITLE_PATTERNS: list[tuple[str, str]] = [
+    (r"\b(software|backend|frontend|full[- ]stack|data|ml|machine learning)\s+engineer\b",
+     "pure hands-on software engineering"),
+    (r"\b(research scientist|ml researcher|applied scientist)\b", "pure ML research/ML engineering"),
+    (r"\b(enterprise|solutions?|cloud)\s+architect\b", "enterprise architect roles requiring architecture ownership"),
+    (r"^(senior |sr\.? |lead |principal |staff |group )?product manager\b", "pure product manager roles without program/portfolio scope"),
+]
+
+
+def _role_family_score(role_family: str) -> int:
+    key = ROLE_FAMILY_ALIASES.get((role_family or "").lower(), role_family)
+    return ROLE_FAMILY_SCORES.get(key, 55)
+
+
+def _seniority_score(seniority: str | None) -> int:
+    if not seniority:
+        return 75
+    key = SENIORITY_ALIASES.get(seniority.lower(), seniority)
+    return SENIORITY_SCORES.get(key, 75)
+
+
+def _avoid_match(title: str) -> str | None:
+    import re
+    lower = (title or "").lower().strip()
+    if "program" in lower or "portfolio" in lower:
+        return None  # program/portfolio scope present — not an avoid role
+    for pattern, label in AVOID_TITLE_PATTERNS:
+        if re.search(pattern, lower):
+            return label
+    return None
+
 
 def estimate_fit(
     job: JobRecord,
@@ -52,21 +99,19 @@ def estimate_fit(
     library = load_evidence_library()
 
     # ── Functional Fit (25%) ────────────────────────────────────────────────
-    func_score = ROLE_FAMILY_SCORES.get(jd.role_family, 55)
+    func_score = _role_family_score(jd.role_family)
     func_reason = (
         f"Role family '{jd.role_family}' aligns "
         f"{'well' if func_score >= 75 else 'partially'} with candidate target families."
     )
-    # Penalize avoid list
-    for avoid in candidate.avoid_or_selective:
-        if any(a in (jd.role_family + " " + job.title).lower()
-               for a in avoid.lower().split()):
-            func_score = max(func_score - 25, 15)
-            func_reason += f" Penalty: role overlaps with avoid list ({avoid})."
-            break
+    # Penalize avoid list (phrase-level match on the job title)
+    avoid = _avoid_match(job.title)
+    if avoid:
+        func_score = max(func_score - 25, 15)
+        func_reason += f" Penalty: role overlaps with avoid list ({avoid})."
 
     # ── Seniority Fit (15%) ─────────────────────────────────────────────────
-    sen_score = SENIORITY_SCORES.get(jd.seniority or "Senior", 75)
+    sen_score = _seniority_score(jd.seniority)
     sen_reason = f"Seniority band '{jd.seniority or 'unspecified'}' vs candidate senior/lead/director level."
 
     # ── Domain Fit (10%) ────────────────────────────────────────────────────
@@ -96,10 +141,13 @@ def estimate_fit(
 
     # ── Location / Authorization (15%) ──────────────────────────────────────
     auth_clues = jd.location_auth_clues
+    positive_clues = {"canada_mentioned", "toronto_mentioned", "remote_ok", "hybrid", "on_site",
+                      "relocation_available"}
+    risky_clues = [c for c in auth_clues if c not in positive_clues]
     if gate and gate.authorization_status and "u.s." in gate.authorization_status.lower():
         loc_score = 20
         loc_reason = "U.S. work authorization required — candidate is Canada-based."
-    elif auth_clues:
+    elif risky_clues:
         loc_score = 45
         loc_reason = "Authorization clues detected — manual verification recommended."
     elif job.location and any(loc in (job.location or "").lower()

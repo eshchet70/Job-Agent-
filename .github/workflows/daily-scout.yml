@@ -1,0 +1,82 @@
+name: Daily job scout
+
+on:
+  schedule:
+    # 10:47 UTC = 6:47 am Toronto (EDT) / 5:47 am (EST)
+    - cron: "47 10 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write   # commit the updated job store
+  pages: write      # publish the dashboard
+  id-token: write
+
+concurrency:
+  group: daily-scout
+  cancel-in-progress: false
+
+jobs:
+  scout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install
+        run: pip install -e .
+
+      - name: Discover, score, tailor resumes, build dashboard
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL || 'claude-sonnet-5-5' }}
+          ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
+          ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
+          MAX_RESUMES_PER_RUN: ${{ vars.MAX_RESUMES_PER_RUN || '8' }}
+        run: python -m app.scout daily
+
+      - name: Commit job store
+        run: |
+          git config user.name "job-scout-bot"
+          git config user.email "job-scout-bot@users.noreply.github.com"
+          git add data/scout/jobs.json
+          if git diff --cached --quiet; then
+            echo "No store changes."
+          else
+            git commit -m "scout: daily update $(date -u +%F)"
+            git push
+          fi
+
+      - name: Upload tailored resumes
+        if: hashFiles('output/resumes/**') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: tailored-resumes-${{ github.run_number }}
+          path: output/resumes/
+          retention-days: 90
+
+      # Always keep a downloadable copy, even if Pages isn't enabled yet.
+      - name: Upload dashboard
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-${{ github.run_number }}
+          path: site/
+          retention-days: 14
+
+      # Publish to GitHub Pages (Settings → Pages → Source: GitHub Actions).
+      - uses: actions/configure-pages@v5
+        continue-on-error: true
+      - uses: actions/upload-pages-artifact@v3
+        continue-on-error: true
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4
+        continue-on-error: true

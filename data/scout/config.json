@@ -1,0 +1,68 @@
+{
+  "_comment": "Search configuration for the daily scout. Edit freely: add companies to the watchlist, change queries, adjust title filters. 'verified' means the board slug was confirmed live on 2026-09-30; the daily run reports any slug that stops resolving.",
+  "locations": {
+    "accept_countries": ["Canada"],
+    "accept_remote_anywhere_in": ["Canada", "North America", "Americas"],
+    "accept_us_roles": false
+  },
+  "title_filters": {
+    "include_any": [
+      "technical program manager", "program manager", "tpm", "programme manager",
+      "portfolio manager", "portfolio management", "portfolio lead", "director of portfolio",
+      "head of portfolio", "pmo", "program director", "director, program", "director of program",
+      "head of program", "program lead", "delivery lead", "delivery director", "head of delivery",
+      "transformation", "engineering operations", "product operations", "technical operations",
+      "ai program", "ai operations", "chief of staff", "strategic programs", "release manager",
+      "agile coach", "release train engineer", "scrum master"
+    ],
+    "exclude_any": [
+      "intern", "co-op", "coop", "new grad", "junior", "associate program", "coordinator",
+      "software engineer", "developer", "data scientist", "research scientist", "account executive",
+      "sales", "recruiter", "marketing program", "campaign", "events", "facilities", "workplace",
+      "construction", "clinical", "nurse", "warehouse", "payroll"
+    ],
+    "seniority_any": [
+      "senior", "sr", "sr.", "lead", "principal", "staff", "director", "head", "manager ii",
+      "manager iii", "group", "vp", "vice president", "chief"
+    ]
+  },
+  "adzuna_queries": [
+    "technical program manager",
+    "senior program manager",
+    "portfolio manager technology",
+    "director program management",
+    "AI program manager",
+    "transformation program manager",
+    "PMO director",
+    "engineering operations manager"
+  ],
+  "exclude_companies": ["Amazon", "Amazon Web Services", "AWS", "CGI", "Whole Foods"],
+  "watchlist": [
+    {"company": "Wealthsimple",  "ats": "ashby",      "slug": "wealthsimple", "verified": true},
+    {"company": "Cohere",        "ats": "ashby",      "slug": "cohere",       "verified": true},
+    {"company": "1Password",     "ats": "ashby",      "slug": "1password",    "verified": true},
+    {"company": "KOHO",          "ats": "ashby",      "slug": "koho",         "verified": true},
+    {"company": "Ramp",          "ats": "ashby",      "slug": "ramp",         "verified": true},
+    {"company": "Notion",        "ats": "ashby",      "slug": "notion",       "verified": true},
+    {"company": "OpenAI",        "ats": "ashby",      "slug": "openai",       "verified": false},
+    {"company": "Faire",         "ats": "greenhouse", "slug": "faire",        "verified": true},
+    {"company": "Instacart",     "ats": "greenhouse", "slug": "instacart",    "verified": true},
+    {"company": "Okta",          "ats": "greenhouse", "slug": "okta",         "verified": true},
+    {"company": "Scale AI",      "ats": "greenhouse", "slug": "scaleai",      "verified": true},
+    {"company": "Coinbase",      "ats": "greenhouse", "slug": "coinbase",     "verified": true},
+    {"company": "Databricks",    "ats": "greenhouse", "slug": "databricks",   "verified": true},
+    {"company": "Tenstorrent",   "ats": "greenhouse", "slug": "tenstorrent",  "verified": true},
+    {"company": "Anthropic",     "ats": "greenhouse", "slug": "anthropic",    "verified": false},
+    {"company": "Stripe",        "ats": "greenhouse", "slug": "stripe",       "verified": false},
+    {"company": "Airbnb",        "ats": "greenhouse", "slug": "airbnb",       "verified": false},
+    {"company": "Dropbox",       "ats": "greenhouse", "slug": "dropbox",      "verified": false},
+    {"company": "Pinterest",     "ats": "greenhouse", "slug": "pinterest",    "verified": false},
+    {"company": "Lyft",          "ats": "greenhouse", "slug": "lyft",         "verified": false},
+    {"company": "Cloudflare",    "ats": "greenhouse", "slug": "cloudflare",   "verified": false},
+    {"company": "Twilio",        "ats": "greenhouse", "slug": "twilio",       "verified": false},
+    {"company": "Figma",         "ats": "greenhouse", "slug": "figma",        "verified": false},
+    {"company": "Robinhood",     "ats": "greenhouse", "slug": "robinhood",    "verified": false},
+    {"company": "Palantir",      "ats": "lever",      "slug": "palantir",     "verified": true},
+    {"company": "Spotify",       "ats": "lever",      "slug": "spotify",      "verified": false}
+  ]
+}

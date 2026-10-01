@@ -18,6 +18,34 @@ Discover -> Verify -> Deduplicate -> Hard Gates -> Strategic Fit -> ATS Match ->
 - Python scaffold and tests.
 - Final product/build specification, data dictionary, test plan and architecture decisions.
 
+## Daily job scout (automated)
+
+Every morning a GitHub Actions workflow (`.github/workflows/daily-scout.yml`, 6:47 am Toronto):
+
+1. **Discovers** openings from the company watchlist in `data/scout/config.json` (public Greenhouse, Lever and Ashby job-board APIs) and from Adzuna's aggregator API for broad Canadian coverage.
+2. **Filters** by title family + seniority, location (Canada / remote-Canada) and excluded companies (Amazon, CGI).
+3. **Scores** each new job with the existing engines: hard gates → strategic fit tier → ATS readiness against `data/master_resume.txt`.
+4. **Tailors a resume** for each new Tier 1–2 job with Claude, using only facts from the master resume and the evidence library's `safe_claims`. Every draft is fact-checked (numbers, dates, roles, unsafe claims, plus a second Claude audit pass). Drafts that still have issues are marked *Needs review* instead of *Ready*.
+5. **Publishes the dashboard** to GitHub Pages and commits the updated job store (`data/scout/jobs.json`).
+
+Tailored resumes (`.docx` + `.md` + a notes file listing keywords added and JD requirements deliberately *not* added) are uploaded as a **private workflow artifact** for each run, never to the public dashboard.
+
+### One-time setup
+
+1. **Make the repository private** (Settings → General → Danger zone). Your resume, profile and evidence library live in `data/`.
+2. **Add secrets** (Settings → Secrets and variables → Actions → New repository secret):
+   - `ANTHROPIC_API_KEY` — from https://console.anthropic.com/ (resume agent; skipped if absent)
+   - `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` — free at https://developer.adzuna.com/ (aggregator; skipped if absent)
+   - Optional *variables*: `ANTHROPIC_MODEL` (default `claude-sonnet-5-5`), `MAX_RESUMES_PER_RUN` (default 8)
+3. **Enable Pages**: Settings → Pages → Build and deployment → Source: **GitHub Actions**. Publishing Pages from a private repo requires a paid GitHub plan; on a free plan the dashboard is still produced every day as a downloadable run artifact.
+4. **Run it once now**: Actions → *Daily job scout* → *Run workflow*.
+
+### Tuning
+
+- Add companies to `watchlist` in `data/scout/config.json` (`ats` = greenhouse | lever | ashby, `slug` = the name in the company's job-board URL). Run `python -m app.scout check` to verify slugs.
+- Adjust `title_filters`, `adzuna_queries` and `locations` in the same file.
+- Run locally: `python -m app.scout daily` (or `run`, `resumes`, `dashboard` individually).
+
 ## Local setup
 ```bash
 python3.11 -m venv .venv
