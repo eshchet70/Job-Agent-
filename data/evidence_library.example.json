@@ -1,0 +1,12 @@
+[
+  {
+    "evidence_id": "E001",
+    "employer": "Example",
+    "role": "Senior Program Manager",
+    "claim": "Led cross-functional portfolio governance across multiple workstreams.",
+    "metrics": [],
+    "technologies": [],
+    "keywords": ["portfolio governance", "cross-functional", "program management"],
+    "source": "master_resume"
+  }
+]

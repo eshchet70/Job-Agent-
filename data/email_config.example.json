@@ -1,0 +1,10 @@
+{
+  "smtp_host": "smtp.gmail.com",
+  "smtp_port": 587,
+  "smtp_username": "your_email@gmail.com",
+  "smtp_sender_email": "your_email@gmail.com",
+  "smtp_sender_name": "Your Name",
+  "smtp_use_tls": true,
+  "smtp_use_ssl": false,
+  "smtp_password": "your_app_password_here"
+}

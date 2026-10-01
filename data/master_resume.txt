@@ -1,0 +1,60 @@
+# Elena Shchetinina
+Senior Technical Program & Portfolio Leader | Platforms, Data, AI & Enterprise Transformation
+Toronto, Canada  |  437-518-0634  |  evschetinina@gmail.com
+
+## Professional Summary
+Senior technical program and portfolio leader with 20+ years of experience across telecom, e-commerce, enterprise platforms, data and public-sector transformation. Leads complex initiatives through ambiguity by aligning engineering, architecture, product and business teams around executable roadmaps, governance and measurable outcomes, with hands-on technical foundations in software, telecom protocols and systems integration.
+
+## Core Capabilities
+Technical Program Management • Portfolio Governance • Platform & Data Programs • Product & Engineering Alignment • Roadmaps & Integrated Planning • RAID / Dependency Management • Executive Steering • Requirements & Product Discovery • Agile / SAFe / Scrum • Enterprise Architecture • Automation • Marketplace / Catalog Data • Process & Operating Model Transformation
+
+## Professional Experience
+
+### Bell Canada | Toronto, ON
+**Senior Program Manager / Agile Program Manager** | Jul 2024 – Feb 2026  
+*Enterprise Architecture / Customer Operations Transformation*
+• Across a ~1,400-application portfolio where technology costs were fragmented across multiple systems, led Bell-side TCO data collection and stakeholder coordination with KPMG, validating the methodology on ~300 applications at ~75% confidence and giving leadership a defensible basis for portfolio cost decisions.
+• As Bell pursued $60M in cost reduction by replacing a legacy payment application with a new technology stack, led program execution for a six-person Enterprise Architecture team, establishing Kanban, dependency tracking and escalation paths that created a structured delivery cadence and surfaced critical decisions for the replacement program.
+• To replace legacy customer-profile functionality and reduce ongoing support costs by several million dollars, coordinated architecture, development and SaaS/platform teams around the new solution, aligning dependencies, sequencing and technical tradeoffs required to advance the enterprise replacement roadmap.
+
+### Amazon | New York, NY
+**Senior Program Manager, Hardlines / Catalog Data** | Feb 2022 – Apr 2023  
+*Marketplace Product Data, Ontology & Catalog Programs*
+• Facing a fixed four-month deadline for a large Hardlines schema review, led a four-person ontology team and prioritized automation with Engineering, delivering the leadership-right-sized scope of ~250 product types on schedule while reducing simple-attribute processing from ~2–3 weeks to one business day.
+• Across three concurrent catalog-data programs sharing Product, Engineering, Data Science and ontology capacity, managed sprint execution, backlog priorities and cross-team dependencies, maintaining delivery across product-type, attribute and data-quality workstreams competing for shared engineering resources.
+• When customer-facing listing defects originated upstream in catalog data, partnered with Data Validation across product types, attributes and ontology mappings to trace defects through the data flow, enabling root-cause identification at the catalog layer rather than treating every issue as a downstream listing problem.
+• For third-party inventory subject to catalog and policy eligibility controls, supported suppression/reinstatement testing across remediation and revalidation workflows, helping validate that failed inventory could be suppressed, corrected and returned to eligibility without conflating separate policy rules.
+
+### IBM | New York, NY
+**Technical Program Manager / Product Owner / Senior Consultant** | Jan 2015 – Feb 2022  
+*Enterprise Platforms, Automation & Public Sector*
+
+**Technical Program Manager / Product Owner — CIO / IBM.com** (Jul 2021 – Feb 2022)
+• To reduce manual website verification and onboarding for IBM.com, managed a seven-person team of four developers and three Webmasters delivering automation tooling including UDP, automating website-information validation and onboarding activities and reducing the manual intervention required to bring sites into the IBM.com environment.
+
+**Product Owner — Finance & Operations Transformation** (Nov 2019 – Jul 2021)
+• With an undocumented legacy contract process blocking a new vendor-management pipeline, reverse-engineered the workflow and led cross-functional requirements and prototype development, delivering documented processing rules, Jira-ready requirements and an implementation foundation for the subsequent delivery stage.
+
+**Senior Consultant — Cúram Public-Sector Programs** (Jan 2015 – Nov 2019)
+• Across Cúram health and human-services transformations in Alberta, Arkansas, Nebraska, San Diego County and Missouri, led/supported business analysis, testing and delivery activities for eligibility and case-management workflows in programs ranging from 10,000+ children and youth in Alberta to 1M+ clients/enrollees in Arkansas and San Diego.
+• Within Missouri's MEDES and other statewide eligibility programs, supported requirements and testing in Cúram-based environments operating at substantial scale, including MEDES reporting of 150K Medicaid applications/account transfers, 170K parent/child cases and 1.9M electronically managed documents.
+
+## Earlier Telecom & Product Engineering Experience
+
+### MegaFon Moscow & Beeline / VimpelCom | Moscow, Russia
+**Billing & OSS/BSS Integrations** | 1999 – 2003
+• As MegaFon Moscow and Beeline/VimpelCom scaled their mobile businesses—reaching ~312,500 and ~3.7M Moscow subscribers respectively by year-end 2002—developed billing, customer-care and provisioning integrations across OSS/BSS platforms supporting rapidly growing telecom environments.
+
+### jNetX | Carrier-Grade Telecom Platforms
+**Validation Engineer**
+• In carrier-grade telecom product development at jNetX, worked as a Validation Engineer on products including the jNetX Server, validating telecom protocols and product behavior, investigating defects and supporting customers using jNetX products to strengthen reliability and interoperability in telecom environments.
+
+## Education & Certifications
+• **MBA** — Rotman School of Management, University of Toronto
+• **B.S., Computer Information Systems** — University of Northern Colorado
+• **SAFe Lean Portfolio Management** • **SAFe Advanced Scrum Master** • **LeanIX Certified Practitioner Level 2**
+
+## Tools & Technology
+• **Program & Delivery**: Jira, Confluence, Asana, Airtable, Azure DevOps, Miro; Agile, SAFe, Scrum, Waterfall, Hybrid; RAID, RACI, dependency and milestone management
+• **Platforms & Architecture**: ServiceNow, Salesforce, SAP50, iValua; REST APIs, microservices, event-driven architecture, distributed systems, enterprise platform modernization
+• **Data & AI**: SQL, advanced Excel, enterprise data warehousing, data quality, KPI/benchmark definition, Tableau, Power BI, Looker; Generative AI/LLM concepts, AI use-case evaluation, workflow automation and model-output evaluation/guardrails

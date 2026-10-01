@@ -1,0 +1,2268 @@
+"""
+Job Search Operating Agent — Streamlit MVP UI
+
+Screens:
+  1. Analyze Job     — paste JD → full qualification pipeline
+  2. People & Outreach — manage hiring chain + draft messages
+  3. Application Record — view persisted briefs
+  4. Dashboard        — metrics overview
+"""
+from __future__ import annotations
+
+import json
+import re
+from datetime import datetime, timezone
+
+import streamlit as st
+
+st.set_page_config(
+    page_title="Job Search Operating Agent",
+    page_icon="🎯",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+# ── Imports ──────────────────────────────────────────────────────────────────
+import importlib
+from pathlib import Path
+
+from app.config import settings
+import app.db.database as db_module
+import app.db.repository as repo
+from app.db.database import init_db
+from app.models import (
+    Confidence,
+    OutreachApproval,
+    PersonTarget,
+    PersonType,
+)
+import app.orchestrator as orch
+from app.services import resume_tailor
+
+process_job = orch.process_job
+load_evidence = orch.load_evidence
+attach_people_and_outreach = orch.attach_people_and_outreach
+
+MASTER_RESUME_FILE = Path(__file__).resolve().parent.parent.parent / "data" / "master_resume.txt"
+
+def load_master_resume() -> str:
+    if MASTER_RESUME_FILE.exists():
+        try:
+            content = MASTER_RESUME_FILE.read_text(encoding="utf-8").strip()
+            if content:
+                return content
+        except Exception:
+            pass
+    return ""
+
+def save_master_resume(text: str) -> None:
+    MASTER_RESUME_FILE.parent.mkdir(parents=True, exist_ok=True)
+    MASTER_RESUME_FILE.write_text(text.strip(), encoding="utf-8")
+    if hasattr(orch, "save_master_resume"):
+        try:
+            orch.save_master_resume(text)
+        except Exception:
+            pass
+
+def clear_master_resume() -> None:
+    MASTER_RESUME_FILE.parent.mkdir(parents=True, exist_ok=True)
+    MASTER_RESUME_FILE.write_text("", encoding="utf-8")
+    if hasattr(orch, "save_master_resume"):
+        try:
+            orch.save_master_resume("")
+        except Exception:
+            pass
+
+from app.services import document_handler, message_generator, linkedin_finder, email_service
+
+# Candidate profile info for outreach
+candidate_profile_data = {}
+try:
+    c_prof_path = Path(__file__).resolve().parent.parent.parent / "data" / "candidate_profile.json"
+    if c_prof_path.exists():
+        candidate_profile_data = json.loads(c_prof_path.read_text(encoding="utf-8"))
+except Exception:
+    pass
+cand_name = candidate_profile_data.get("name", "Elena Shchetinina")
+
+
+def format_relative_time(dt) -> str:
+    """Format a datetime into a human-readable relative string."""
+    if not dt:
+        return ""
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    diff = now - dt
+    days = diff.days
+    if days <= 0:
+        return "today"
+    elif days == 1:
+        return "yesterday"
+    elif days < 7:
+        return f"{days} days ago"
+    elif days < 14:
+        return "1 week ago"
+    elif days < 30:
+        return f"{days // 7} weeks ago"
+    elif days < 60:
+        return "1 month ago"
+    else:
+        return f"{days // 30} months ago"
+
+
+def render_smtp_config_form(key_prefix: str = "global"):
+    """Render an interactive SMTP settings and test form."""
+    cfg = email_service.load_saved_email_config()
+
+    st.markdown("###### ⚙️ SMTP Email Server Settings")
+    st.caption("Configure credentials to dispatch outreach emails directly from the application.")
+
+    configured_user = cfg.get("smtp_username", "").strip()
+    configured_pass = cfg.get("smtp_password", "").strip()
+    configured_host = cfg.get("smtp_host", "").strip()
+    configured_port = cfg.get("smtp_port", 587)
+
+    if configured_user and configured_pass:
+        st.success(f"🟢 **Configured:** `{configured_user}` via `{configured_host}:{configured_port}`")
+    else:
+        st.info("ℹ️ Enter your email address and App Password below, then click **Save Credentials**.")
+
+    provider_options = [
+        "Gmail (smtp.gmail.com:587)",
+        "Outlook / Office 365 (smtp.office365.com:587)",
+        "iCloud (smtp.mail.me.com:587)",
+        "Yahoo (smtp.mail.yahoo.com:587)",
+        "Custom SMTP Server",
+    ]
+
+    current_host = cfg.get("smtp_host", "")
+    current_provider_idx = 0
+    if "office365" in current_host or "outlook" in current_host:
+        current_provider_idx = 1
+    elif "mail.me.com" in current_host:
+        current_provider_idx = 2
+    elif "yahoo" in current_host:
+        current_provider_idx = 3
+    elif current_host and "gmail" not in current_host:
+        current_provider_idx = 4
+
+    provider_choice = st.selectbox(
+        "Email Provider Preset",
+        provider_options,
+        index=current_provider_idx,
+        key=f"{key_prefix}_provider",
+    )
+
+    preset_hosts = {
+        "Gmail (smtp.gmail.com:587)": ("smtp.gmail.com", 587, True, False),
+        "Outlook / Office 365 (smtp.office365.com:587)": ("smtp.office365.com", 587, True, False),
+        "iCloud (smtp.mail.me.com:587)": ("smtp.mail.me.com", 587, True, False),
+        "Yahoo (smtp.mail.yahoo.com:587)": ("smtp.mail.yahoo.com", 587, True, False),
+    }
+
+    if provider_choice in preset_hosts:
+        default_host, default_port, default_tls, default_ssl = preset_hosts[provider_choice]
+    else:
+        default_host = cfg.get("smtp_host") or "smtp.example.com"
+        default_port = int(cfg.get("smtp_port") or 587)
+        default_tls = bool(cfg.get("smtp_use_tls", True))
+        default_ssl = bool(cfg.get("smtp_use_ssl", False))
+
+    col_h, col_p = st.columns([3, 1])
+    with col_h:
+        smtp_host = st.text_input(
+            "SMTP Host",
+            value=default_host,
+            key=f"{key_prefix}_host",
+        )
+    with col_p:
+        smtp_port = st.number_input(
+            "Port",
+            value=default_port,
+            min_value=1,
+            max_value=65535,
+            key=f"{key_prefix}_port",
+        )
+
+    col_u, col_pwd = st.columns([1, 1])
+    with col_u:
+        smtp_username = st.text_input(
+            "Your Email Address / Username",
+            value=cfg.get("smtp_username", ""),
+            placeholder="e.g. evschetinina@gmail.com",
+            key=f"{key_prefix}_user",
+        )
+    with col_pwd:
+        smtp_password = st.text_input(
+            "Password / App Password",
+            value=cfg.get("smtp_password", ""),
+            type="password",
+            placeholder="16-character App Password",
+            key=f"{key_prefix}_pass",
+            help="For Gmail, use a 16-character Google App Password from myaccount.google.com/apppasswords.",
+        )
+
+    col_n, col_sec = st.columns([2, 1])
+    with col_n:
+        smtp_sender_name = st.text_input(
+            "Sender Display Name",
+            value=cfg.get("smtp_sender_name") or cand_name,
+            key=f"{key_prefix}_name",
+        )
+    with col_sec:
+        smtp_use_tls = st.checkbox(
+            "Use STARTTLS",
+            value=True if ("gmail" in provider_choice.lower() or default_port == 587) else default_tls,
+            key=f"{key_prefix}_tls",
+        )
+
+    if "gmail" in provider_choice.lower() or "gmail" in smtp_host.lower():
+        st.info(
+            "💡 **Gmail App Password Required**:\n"
+            "Google accounts require a dedicated 16-character **App Password** (not your regular account password or a browser-generated strong password).\n\n"
+            "👉 **[Click here to generate a Google App Password](https://myaccount.google.com/apppasswords)**\n"
+            "1. Enter app name (e.g. `Job Agent`) and click **Create**.\n"
+            "2. Copy the **16-letter code** (e.g. `abcd efgh ijkl mnop`) and paste it into the Password field above."
+        )
+    elif "outlook" in provider_choice.lower() or "office365" in provider_choice.lower():
+        st.info("💡 **Outlook/M365 Guide**: Ensure Authenticated SMTP is enabled on your Microsoft 365 mailbox settings.")
+
+    col_b1, col_b2 = st.columns([1, 1])
+    with col_b1:
+        if st.button("💾 Save Credentials", key=f"{key_prefix}_btn_save", type="primary", use_container_width=True):
+            clean_host = smtp_host.strip()
+            clean_port = int(smtp_port)
+            clean_user = smtp_username.strip()
+            clean_pass = smtp_password.strip()
+            clean_name = smtp_sender_name.strip() or cand_name
+
+            # Gmail & port 587 require STARTTLS
+            use_tls = smtp_use_tls or ("gmail" in clean_host.lower()) or (clean_port == 587)
+            use_ssl = (clean_port == 465)
+
+            new_cfg = {
+                "smtp_host": clean_host,
+                "smtp_port": clean_port,
+                "smtp_username": clean_user,
+                "smtp_password": clean_pass,
+                "smtp_sender_email": clean_user,
+                "smtp_sender_name": clean_name,
+                "smtp_use_tls": use_tls,
+                "smtp_use_ssl": use_ssl,
+            }
+            email_service.save_email_config(new_cfg)
+            st.session_state[f"{key_prefix}_save_status"] = f"Credentials saved successfully for {clean_user} ({clean_host}:{clean_port})!"
+            st.session_state[f"{key_prefix}_test_res"] = None
+
+    with col_b2:
+        if st.button("🔌 Test Connection", key=f"{key_prefix}_btn_test", use_container_width=True):
+            clean_host = smtp_host.strip()
+            clean_port = int(smtp_port)
+            clean_user = smtp_username.strip()
+            clean_pass = smtp_password.strip()
+            if not clean_host or not clean_user:
+                st.warning("Please provide SMTP Host and Username before testing.")
+            else:
+                with st.spinner(f"Connecting to {clean_host}:{clean_port}..."):
+                    use_tls = smtp_use_tls or ("gmail" in clean_host.lower()) or (clean_port == 587)
+                    ok, msg = email_service.test_smtp_connection(
+                        host=clean_host,
+                        port=clean_port,
+                        username=clean_user,
+                        password=clean_pass,
+                        use_tls=use_tls,
+                        use_ssl=(clean_port == 465),
+                    )
+                    from datetime import datetime
+                    now_str = datetime.now().strftime("%I:%M:%S %p")
+                    st.session_state[f"{key_prefix}_test_res"] = (ok, f"[{now_str}] {msg}")
+
+    # Direct "Send Test Email" button so user can verify delivery in their real inbox
+    if st.button("📨 Send Verification Email to My Inbox", key=f"{key_prefix}_btn_send_test", use_container_width=True):
+        clean_host = smtp_host.strip()
+        clean_port = int(smtp_port)
+        clean_user = smtp_username.strip()
+        clean_pass = smtp_password.strip()
+        if not clean_user or not clean_pass:
+            st.warning("Please configure and save your credentials first.")
+        else:
+            with st.spinner(f"Sending verification email to {clean_user}..."):
+                res = email_service.send_email(
+                    to_email=clean_user,
+                    subject="Job Search Agent — SMTP Verification Email",
+                    body=(
+                        f"Hello {smtp_sender_name.strip() or 'there'},\n\n"
+                        f"This is a confirmation test email from your Job Search Agent!\n\n"
+                        f"Your email connection to {clean_host}:{clean_port} is fully operational, "
+                        f"and you can now dispatch personalized outreach emails directly from the app.\n\n"
+                        f"Best regards,\nJob Search Agent"
+                    ),
+                    is_approved=True,
+                )
+                from datetime import datetime
+                now_str = datetime.now().strftime("%I:%M:%S %p")
+                st.session_state[f"{key_prefix}_send_test_res"] = (res.success, f"[{now_str}] {res.message}")
+
+    if st.session_state.get(f"{key_prefix}_save_status"):
+        st.success(f"💾 {st.session_state[f'{key_prefix}_save_status']}")
+
+    if st.session_state.get(f"{key_prefix}_test_res"):
+        t_ok, t_msg = st.session_state[f"{key_prefix}_test_res"]
+        if t_ok:
+            st.success(f"🔌 {t_msg}")
+        else:
+            st.error(f"❌ {t_msg}")
+
+    if st.session_state.get(f"{key_prefix}_send_test_res"):
+        s_ok, s_msg = st.session_state[f"{key_prefix}_send_test_res"]
+        if s_ok:
+            st.success(f"📬 {s_msg}")
+        else:
+            st.error(f"❌ {s_msg}")
+
+
+# ── Init ─────────────────────────────────────────────────────────────────────
+init_db()
+
+# ── Styling ───────────────────────────────────────────────────────────────────
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+.stApp { background: #0f172a; color: #f8fafc; }
+section[data-testid="stSidebar"] {
+    background: linear-gradient(160deg, #0f172a 0%, #1e293b 100%);
+    border-right: 1px solid #334155;
+}
+section[data-testid="stSidebar"] * { color: #e2e8f0 !important; }
+
+/* Input, Textarea, and Select Dark Mode & High Contrast */
+div[data-baseweb="input"],
+div[data-baseweb="base-input"],
+div[data-baseweb="textarea"],
+div[data-baseweb="select"] {
+    background-color: #1e293b !important;
+    border: 1px solid #334155 !important;
+    border-radius: 8px !important;
+    color: #f8fafc !important;
+}
+
+input,
+textarea,
+div[data-baseweb="input"] input,
+div[data-baseweb="textarea"] textarea {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+    -webkit-text-fill-color: #f8fafc !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 0.95rem !important;
+    line-height: 1.5 !important;
+}
+
+div[data-baseweb="input"]:focus-within,
+div[data-baseweb="textarea"]:focus-within {
+    border-color: #38bdf8 !important;
+    box-shadow: 0 0 0 1px #38bdf8 !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: #64748b !important;
+    -webkit-text-fill-color: #64748b !important;
+    opacity: 0.8 !important;
+}
+
+div[data-baseweb="select"] div,
+ul[role="listbox"],
+li[role="option"] {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+}
+
+/* Button High Contrast & Interactive States */
+button[data-testid="baseButton-secondary"] {
+    background-color: #1e293b !important;
+    border: 1px solid #475569 !important;
+    color: #f8fafc !important;
+    font-weight: 500 !important;
+    transition: all 0.15s ease-in-out !important;
+}
+button[data-testid="baseButton-secondary"]:hover {
+    background-color: #334155 !important;
+    border-color: #38bdf8 !important;
+    color: #38bdf8 !important;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.2) !important;
+}
+button[data-testid="baseButton-primary"] {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+    border: none !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+
+/* Base typography scaling - more compact & refined */
+html, body {
+    font-size: 14px !important;
+}
+
+h1, .stApp h1 { font-size: 1.5rem !important; }
+h2, .stApp h2 { font-size: 1.25rem !important; }
+h3, .stApp h3 { font-size: 1.05rem !important; }
+h4, .stApp h4 { font-size: 0.92rem !important; }
+h5, .stApp h5 { font-size: 0.85rem !important; }
+
+p, span, label {
+    font-size: 0.88rem;
+}
+
+/* Streamlit Metrics Font Size & Truncation Fix */
+div[data-testid="stMetric"] {
+    background-color: #1e293b !important;
+    border: 1px solid #334155 !important;
+    border-radius: 8px !important;
+    padding: 6px 10px !important;
+}
+
+div[data-testid="stMetricLabel"] {
+    font-size: 0.72rem !important;
+    font-weight: 500 !important;
+    color: #94a3b8 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 2px !important;
+}
+
+div[data-testid="stMetricLabel"] p {
+    font-size: 0.72rem !important;
+    color: #94a3b8 !important;
+    margin: 0 !important;
+}
+
+div[data-testid="stMetricValue"] {
+    font-size: 1.02rem !important;
+    font-weight: 600 !important;
+    color: #f8fafc !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    line-height: 1.25 !important;
+}
+
+div[data-testid="stMetricValue"] > div {
+    font-size: 1.02rem !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    line-height: 1.25 !important;
+}
+
+div[data-testid="stMetricDelta"] {
+    font-size: 0.72rem !important;
+}
+
+/* Sidebar metrics */
+section[data-testid="stSidebar"] div[data-testid="stMetric"] {
+    background: transparent !important;
+    border: none !important;
+    padding: 2px 0 !important;
+}
+section[data-testid="stSidebar"] div[data-testid="stMetricValue"],
+section[data-testid="stSidebar"] div[data-testid="stMetricValue"] > div {
+    font-size: 1.15rem !important;
+}
+
+/* Expander headers */
+div[data-testid="stExpander"] details summary {
+    font-size: 0.88rem !important;
+    padding: 6px 10px !important;
+}
+div[data-testid="stExpander"] details summary p {
+    font-size: 0.88rem !important;
+}
+
+button {
+    font-size: 0.85rem !important;
+}
+
+.metric-card {
+    background: linear-gradient(135deg, #1e3a5f 0%, #0d2137 100%);
+    border-radius: 10px; padding: 0.8rem 1rem;
+    border-left: 3px solid #4fc3f7; margin-bottom: 0.5rem;
+}
+.metric-card small {
+    font-size: 0.75rem !important;
+    color: #94a3b8 !important;
+}
+.metric-card b {
+    font-size: 1.3em !important;
+}
+.tier-badge-tier_1   { background:#1a7a4a; color:#fff; border-radius:8px; padding:2px 10px; font-weight:700; font-size:0.85em; }
+.tier-badge-tier_2   { background:#b5860b; color:#fff; border-radius:8px; padding:2px 10px; font-weight:700; font-size:0.85em; }
+.tier-badge-tier_3   { background:#b35c00; color:#fff; border-radius:8px; padding:2px 10px; font-weight:700; font-size:0.85em; }
+.tier-badge-do_not_pursue { background:#8b0000; color:#fff; border-radius:8px; padding:2px 10px; font-weight:700; font-size:0.85em; }
+.tier-badge-barrier  { background:#555; color:#fff; border-radius:8px; padding:2px 10px; font-weight:700; font-size:0.85em; }
+.evidence-tag { background:#1e3a5f; color:#4fc3f7; border-radius:6px; padding:1px 8px; font-size:0.8em; margin-right:4px; }
+.barrier-box { background:#3d0000; border-left:4px solid #ff4b4b; border-radius:8px; padding:0.8rem 1rem; margin:0.5rem 0; font-size:0.88em; }
+.safe-claim { background:#0a2a0a; border-left:3px solid #4caf50; border-radius:6px; padding:0.5rem 0.8rem; margin:0.3rem 0; font-size:0.85em; }
+
+pre, code {
+    background-color: #1e293b !important;
+    color: #e2e8f0 !important;
+    border-radius: 8px;
+    padding: 0.8rem;
+    font-size: 0.82rem !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+# =============================================================================
+# Helper: render ApplicationBrief results
+# =============================================================================
+
+def _render_brief(brief):
+    """Render a full ApplicationBrief result."""
+    job = brief.job
+    fit = brief.fit
+    gate = brief.gate
+    ats = brief.ats
+
+    st.divider()
+
+    # Header row
+    hcol1, hcol2, hcol3, hcol4 = st.columns([3, 2, 2, 2])
+    with hcol1:
+        st.subheader(f"{job.company} — {job.title}")
+        st.caption(f"{job.location or ''} · {job.work_model or ''} · {job.role_family or ''}")
+    with hcol2:
+        if fit:
+            tier_label = fit.tier.value.replace("_", " ").title()
+            st.markdown(
+                f"<div class='metric-card'>"
+                f"<small>Strategic Fit</small><br>"
+                f"<b style='font-size:1.8em;color:#4fc3f7'>{fit.weighted_score}</b>/100<br>"
+                f"<span class='tier-badge-{fit.tier.value}'>{tier_label}</span>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+    with hcol3:
+        if ats:
+            st.markdown(
+                f"<div class='metric-card'>"
+                f"<small>ATS Readiness</small><br>"
+                f"<b style='font-size:1.8em;color:#4fc3f7'>{ats.readiness:.0f}%</b><br>"
+                f"<small>Critical: {ats.critical_coverage:.0f}% · Important: {ats.important_coverage:.0f}%</small>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+    with hcol4:
+        if gate:
+            status = "✅ PASSED" if gate.passed else "🚫 BARRIERS"
+            color = "#4caf50" if gate.passed else "#ff4b4b"
+            st.markdown(
+                f"<div class='metric-card'>"
+                f"<small>Hard Gates</small><br>"
+                f"<b style='font-size:1.4em;color:{color}'>{status}</b>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+
+    # Barriers
+    if gate and gate.barriers:
+        for b in gate.barriers:
+            st.markdown(f"<div class='barrier-box'>⛔ {b}</div>", unsafe_allow_html=True)
+
+    # Next action
+    if brief.next_action:
+        st.info(f"📌 **Next Action:** {brief.next_action}")
+
+    # ── Application & Company Career Site Access ──────────────────────────────
+    import urllib.parse
+    company_name = (job.company or "").strip()
+    title_name = (job.title or "").strip()
+    company_query = urllib.parse.quote_plus(f"{company_name} {title_name} careers apply")
+    portal_query = urllib.parse.quote_plus(f"{company_name} careers open positions")
+    google_search_url = f"https://www.google.com/search?q={company_query}"
+    portal_search_url = f"https://www.google.com/search?q={portal_query}"
+
+    raw_url = (job.official_url or "").strip()
+    is_linkedin = "linkedin.com" in raw_url.lower() if raw_url else False
+    has_company_url = bool(raw_url and not is_linkedin)
+
+    app_bar_c1, app_bar_c2, app_bar_c3 = st.columns([2, 2, 2])
+    with app_bar_c1:
+        if has_company_url:
+            st.link_button(
+                "🌐 Open Role on Company Site",
+                raw_url,
+                type="primary",
+                use_container_width=True,
+                help=f"Direct link to official company career portal: {raw_url}",
+            )
+        else:
+            st.link_button(
+                "🌐 Find on Company Careers Site",
+                google_search_url,
+                type="primary",
+                use_container_width=True,
+                help=f"Search Google directly for this role on {company_name}'s official career site (bypasses LinkedIn)",
+            )
+    with app_bar_c2:
+        st.link_button(
+            f"🏢 {company_name} Careers Portal",
+            portal_search_url,
+            use_container_width=True,
+            help=f"Open {company_name}'s main careers / jobs portal",
+        )
+    with app_bar_c3:
+        if is_linkedin:
+            st.caption("ℹ️ Source JD from LinkedIn. Use buttons to apply on company site.")
+        elif has_company_url:
+            st.caption("✅ Official company career URL loaded.")
+        else:
+            st.caption("ℹ️ Direct company career search ready.")
+
+    # Tabs
+    tab_fit, tab_ats, tab_ev, tab_tailored, tab_raw = st.tabs(
+        ["🎯 Strategic Fit", "🔑 ATS Keywords", "📚 Evidence Map", "📄 Tailored Resume Draft", "🗂 Raw JD"]
+    )
+
+    with tab_fit:
+        if fit:
+            dims = {
+                "Functional": fit.functional,
+                "Seniority": fit.seniority,
+                "Domain": fit.domain,
+                "Evidence Strength": fit.evidence,
+                "Location/Auth": fit.location_auth,
+                "Competitive": fit.competitive,
+                "Relationship": fit.relationship,
+            }
+            for name, dim in dims.items():
+                st.markdown(f"**{name}** — {dim.score}/100")
+                st.progress(dim.score / 100)
+                st.caption(dim.rationale)
+                if dim.evidence_ids:
+                    tags = " ".join(
+                        f"<span class='evidence-tag'>{eid}</span>" for eid in dim.evidence_ids
+                    )
+                    st.markdown(tags, unsafe_allow_html=True)
+                st.divider()
+        else:
+            st.info("No strategic fit data.")
+
+    with tab_ats:
+        if ats:
+            col_a, col_b, col_c = st.columns(3)
+            col_a.metric("Critical Coverage", f"{ats.critical_coverage:.0f}%")
+            col_b.metric("Important Coverage", f"{ats.important_coverage:.0f}%")
+            col_c.metric("Evidence Coverage", f"{ats.evidence_coverage:.0f}%")
+
+            missing_kw_matches = [m for m in ats.matches if m.action.value in ("ADD", "DO_NOT_ADD") or not (m.exact_match or m.semantic_match)]
+            if missing_kw_matches:
+                st.info(
+                    f"💡 **{len(missing_kw_matches)} missing keywords detected!** Switch to the **'📄 Tailored Resume Draft'** tab "
+                    f"to automatically integrate them into your **current role (Bell Canada)** bullets and boost your ATS score."
+                )
+
+            st.subheader("Keyword Actions")
+            action_icons = {"KEEP": "🟢", "ADD": "🟡", "STRENGTHEN": "🔵", "DO_NOT_ADD": "🔴"}
+            for m in ats.matches:
+                icon = action_icons.get(m.action.value, "⚪")
+                ev_tags = " ".join(
+                    f"<span class='evidence-tag'>{e}</span>" for e in m.evidence_ids
+                )
+                with st.expander(
+                    f"{icon} [{m.action.value}] **{m.keyword}** ({m.importance})", expanded=False
+                ):
+                    st.caption(f"Category: {m.category}")
+                    st.caption(f"Exact match: {m.exact_match} · Semantic: {m.semantic_match}")
+                    if ev_tags:
+                        st.markdown(f"Evidence: {ev_tags}", unsafe_allow_html=True)
+        else:
+            st.info("No ATS data.")
+
+    with tab_ev:
+        if brief.evidence_map:
+            st.subheader("Requirement → Evidence Mapping")
+            strength_icons = {"strong": "💪", "medium": "👍", "weak": "🤔", "none": "❌"}
+            for em in brief.evidence_map:
+                icon = strength_icons.get(em.strength, "❓")
+                with st.expander(
+                    f"{icon} **{em.requirement}** ({em.strength})", expanded=False
+                ):
+                    if em.is_supported:
+                        ev_tags = " ".join(
+                            f"<span class='evidence-tag'>{e}</span>" for e in em.evidence_ids
+                        )
+                        st.markdown(f"Evidence IDs: {ev_tags}", unsafe_allow_html=True)
+                        if em.safe_wording:
+                            st.markdown(
+                                f"<div class='safe-claim'>✅ Safe wording: {em.safe_wording}</div>",
+                                unsafe_allow_html=True,
+                            )
+                    else:
+                        st.warning("No evidence found — DO NOT CLAIM without verified support.")
+        else:
+            st.info("No evidence mappings.")
+
+    with tab_tailored:
+        st.subheader(f"📄 Tailored Resume Draft for {job.company}")
+        st.caption(
+            "Evidence-grounded tailoring of your Master Resume aligned to this job's requirements and ATS keywords."
+        )
+
+        master_text = load_master_resume()
+        job_key = str(brief.job.id or "current")
+
+        # ── 1. Keyword Gap & Missing Analysis ──
+        parsed_jd = brief.parsed_jd or orch.jd_parser.parse_jd(job.description, company=job.company)
+        missing_analysis = resume_tailor.detect_missing_keywords(parsed_jd, master_text)
+        missing_cur_role = missing_analysis["missing_from_current_role"]
+        missing_resume = missing_analysis["missing_from_resume"]
+
+        keep_kws = [m.keyword for m in (ats.matches if ats else []) if m.action.value == "KEEP"]
+        add_kws = [m.keyword for m in (ats.matches if ats else []) if m.action.value == "ADD"]
+        strengthen_kws = [m.keyword for m in (ats.matches if ats else []) if m.action.value == "STRENGTHEN"]
+        safe_bullets = [em.safe_wording for em in (brief.evidence_map or []) if em.is_supported and em.safe_wording]
+
+        # Metric summary cards
+        c_m1, c_m2, c_m3, c_m4 = st.columns(4)
+        c_m1.metric("Current ATS Readiness", f"{ats.readiness:.0f}%" if ats else "N/A")
+        c_m2.metric("Missing from Current Role", f"{len(missing_cur_role)}")
+        c_m3.metric("Missing from Resume", f"{len(missing_resume)}")
+        c_m4.metric("Evidence-Supported Gaps", f"{sum(1 for m in missing_cur_role if m['is_supported'])}")
+
+        tc1, tc2 = st.columns(2)
+        with tc1:
+            st.markdown("##### 🔑 Keywords Missing from Current Role Experience (Bell Canada)")
+            if missing_cur_role:
+                badge_html = " ".join(
+                    f"<span class='tier-badge-tier_{'1' if m['importance']=='critical' else '2'}'>{m['keyword']}</span>"
+                    for m in missing_cur_role[:10]
+                )
+                st.markdown(badge_html, unsafe_allow_html=True)
+            else:
+                st.info("All target role keywords are already present in your current role experience.")
+
+        with tc2:
+            st.markdown("##### 📌 Relevant Safe Evidence Bullets")
+            if safe_bullets:
+                for b in safe_bullets[:3]:
+                    st.markdown(f"- {b}")
+            else:
+                st.caption("Standard evidence-grounded role formulation.")
+
+        st.divider()
+
+        # ── 2. INTERACTIVE KEYWORD TAILORING CONTROLS ──
+        st.markdown("### ⚡ Update Resume & Current Role for Missing Keywords")
+        st.caption(
+            "Select missing keywords from this job posting to automatically weave into your "
+            "**Current Role (Bell Canada)** bullets, Professional Summary, and Core Capabilities."
+        )
+
+        all_missing_kw_names = [m["keyword"] for m in missing_cur_role]
+        default_selected = [
+            m["keyword"] for m in missing_cur_role
+            if m["is_supported"] or m["importance"] in ("critical", "important")
+        ][:8]
+
+        sess_tailor_kws_key = f"sel_tailor_kws_{job_key}"
+        if sess_tailor_kws_key not in st.session_state:
+            st.session_state[sess_tailor_kws_key] = default_selected
+
+        selected_tailor_kws = st.multiselect(
+            "Missing keywords to integrate:",
+            options=all_missing_kw_names,
+            default=st.session_state[sess_tailor_kws_key],
+            key=f"ms_tailor_kws_{job_key}",
+            help="Choose which missing keywords from the job description to weave into your resume",
+        )
+
+        custom_kw_input = st.text_input(
+            "➕ Add custom keywords (comma-separated, optional):",
+            key=f"custom_kw_in_{job_key}",
+            placeholder="e.g. Enterprise Architecture, Vendor Negotiation, Executive Reporting",
+        )
+
+        tog_c1, tog_c2, tog_c3, tog_c4 = st.columns(4)
+        up_cur_role = tog_c1.checkbox("Update Current Role (Bell)", value=True, help="Add or enrich Bell Canada experience bullets with selected keywords")
+        up_summary = tog_c2.checkbox("Update Summary", value=True, help="Align summary with target role title and keywords")
+        up_comp = tog_c3.checkbox("Update Core Capabilities", value=True, help="Inject keywords into top competencies block")
+        up_tools = tog_c4.checkbox("Update Tools & Tech", value=True, help="Add relevant tools to Tools & Technology")
+
+        btn_t1, btn_t2 = st.columns([2, 1])
+        with btn_t1:
+            if st.button("✨ Update Resume with Missing Keywords", type="primary", use_container_width=True, key=f"btn_do_tailor_{job_key}"):
+                extra_kws = [k.strip() for k in custom_kw_input.split(",") if k.strip()]
+                final_kws = list(dict.fromkeys(selected_tailor_kws + extra_kws))
+
+                tailored_res, meta = resume_tailor.tailor_resume(
+                    master_resume_text=master_text,
+                    job=job,
+                    parsed_jd=parsed_jd,
+                    selected_keywords=final_kws,
+                    update_current_role=up_cur_role,
+                    update_summary=up_summary,
+                    update_competencies=up_comp,
+                    update_tools=up_tools,
+                )
+
+                impact = resume_tailor.evaluate_tailoring_impact(
+                    original_resume_text=master_text,
+                    tailored_resume_text=tailored_res,
+                    parsed_jd=parsed_jd,
+                    role_title=job.title,
+                )
+
+                st.session_state[f"tailored_draft_content_{job_key}"] = tailored_res
+                st.session_state[f"tailored_impact_{job_key}"] = impact
+                st.session_state[f"tailored_meta_{job_key}"] = meta
+                st.session_state[sess_tailor_kws_key] = selected_tailor_kws
+                st.rerun()
+
+        with btn_t2:
+            if st.button("🔄 Reset to Baseline Draft", use_container_width=True, key=f"btn_reset_tailor_{job_key}"):
+                st.session_state.pop(f"tailored_draft_content_{job_key}", None)
+                st.session_state.pop(f"tailored_impact_{job_key}", None)
+                st.session_state.pop(f"tailored_meta_{job_key}", None)
+                st.rerun()
+
+        # If tailored draft is not cached in session state, create initial baseline
+        if f"tailored_draft_content_{job_key}" not in st.session_state:
+            init_tailored, init_meta = resume_tailor.tailor_resume(
+                master_resume_text=master_text,
+                job=job,
+                parsed_jd=parsed_jd,
+                selected_keywords=default_selected,
+                update_current_role=True,
+                update_summary=True,
+                update_competencies=True,
+                update_tools=True,
+            )
+            st.session_state[f"tailored_draft_content_{job_key}"] = init_tailored
+            st.session_state[f"tailored_meta_{job_key}"] = init_meta
+
+        active_tailored_text = st.session_state[f"tailored_draft_content_{job_key}"]
+        active_impact = st.session_state.get(f"tailored_impact_{job_key}")
+        active_meta = st.session_state.get(f"tailored_meta_{job_key}")
+
+        if active_impact:
+            st.success(
+                f"🚀 **ATS Score Boost: {active_impact['original_readiness']:.0f}% ➔ {active_impact['tailored_readiness']:.0f}% "
+                f"(+{active_impact['readiness_delta']}%)** · Critical Coverage: **{active_impact['tailored_critical_coverage']:.0f}%** "
+                f"· Important Coverage: **{active_impact['tailored_important_coverage']:.0f}%**"
+            )
+            if active_impact.get("newly_covered_keywords"):
+                st.caption(f"✅ **Newly Covered Keywords in Resume:** {', '.join(active_impact['newly_covered_keywords'][:8])}")
+
+        if active_meta and active_meta.get("current_role_bullets_after"):
+            with st.expander("🔍 View Current Role (Bell Canada) Experience Updates", expanded=False):
+                st.markdown("**Current Role Bullets Aligned to Missing Keywords:**")
+                before_b = set(active_meta.get("current_role_bullets_before", []))
+                for b in active_meta["current_role_bullets_after"]:
+                    prefix = "🆕 " if b not in before_b else "• "
+                    st.markdown(f"{prefix}{b}")
+
+        # Live Editable Text Area
+        edited_tailored_draft = st.text_area(
+            "Tailored Resume Draft Content (Live Editable):",
+            value=active_tailored_text,
+            height=480,
+            key=f"tailored_resume_preview_{job_key}",
+        )
+        st.session_state[f"tailored_draft_content_{job_key}"] = edited_tailored_draft
+
+        # Export & Save Actions
+        st.markdown("##### 📥 Export & Save Tailored Resume")
+        dcol1, dcol2, dcol3, dcol4 = st.columns(4)
+        with dcol1:
+            docx_data = document_handler.create_docx(edited_tailored_draft, f"{job.company} Tailored Resume")
+            st.download_button(
+                label="📄 Download Word (.docx)",
+                data=docx_data,
+                file_name=f"Elena_Shchetinina_{job.company.replace(' ', '_')}_Resume.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                use_container_width=True,
+            )
+        with dcol2:
+            pdf_data = document_handler.create_pdf(edited_tailored_draft, f"{job.company} Tailored Resume")
+            st.download_button(
+                label="📑 Download PDF (.pdf)",
+                data=pdf_data,
+                file_name=f"Elena_Shchetinina_{job.company.replace(' ', '_')}_Resume.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+            )
+        with dcol3:
+            st.download_button(
+                label="📝 Download Markdown (.md)",
+                data=edited_tailored_draft,
+                file_name=f"Elena_Shchetinina_{job.company.replace(' ', '_')}_Resume.md",
+                mime="text/markdown",
+                use_container_width=True,
+            )
+        with dcol4:
+            if st.button("💾 Save as Master Resume", use_container_width=True, help="Update data/master_resume.txt with these experience updates", key=f"btn_save_to_master_{job_key}"):
+                save_master_resume(edited_tailored_draft)
+                st.session_state["resume_just_saved"] = True
+                st.toast("✅ Master Resume successfully updated with tailored experience!", icon="💾")
+                st.rerun()
+
+        st.divider()
+        st.markdown("##### 🚀 Apply Directly on Company Site")
+        st.caption("Submit your tailored Word (.docx) or PDF (.pdf) resume directly on the company's portal to bypass LinkedIn Easy Apply.")
+
+        sub_col1, sub_col2 = st.columns([1, 1])
+        with sub_col1:
+            if has_company_url:
+                st.link_button("🌐 Open Company Application Page", raw_url, type="primary", use_container_width=True)
+            else:
+                st.link_button("🌐 Open Role on Company Site (Direct Search)", google_search_url, type="primary", use_container_width=True)
+        with sub_col2:
+            st.link_button(f"🏢 Search {company_name} Career Portal", portal_search_url, use_container_width=True)
+
+    with tab_raw:
+        st.markdown(f"**Full Job Description** ({len(brief.job.description):,} characters):")
+        st.text_area(
+            "Raw JD Content",
+            value=brief.job.description,
+            height=400,
+            disabled=True,
+            label_visibility="collapsed",
+            key=f"raw_jd_view_{brief.job.id or 'current'}",
+        )
+
+
+# ── Sidebar ───────────────────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown("### 🎯 Job Search Agent")
+    st.caption("Evidence-grounded · Human-in-the-loop")
+    st.divider()
+    nav_screens = ["🔍 Analyze Job", "📄 Master Resume", "👥 People & Outreach", "📋 Application Record", "📊 Dashboard"]
+    target_screen = st.session_state.pop("nav_screen", None)
+    if target_screen and target_screen in nav_screens:
+        st.session_state["nav_screen_radio"] = target_screen
+
+    screen = st.radio(
+        "Navigation",
+        nav_screens,
+        label_visibility="collapsed",
+        key="nav_screen_radio",
+    )
+    st.divider()
+
+    try:
+        stats = repo.get_dashboard_stats()
+        st.metric("Total Jobs", stats["total_jobs"])
+        st.metric("Avg ATS Readiness", f"{stats['avg_ats_readiness']:.0f}%")
+        if stats["outreach_pending"]:
+            st.warning(f"⏳ {stats['outreach_pending']} outreach pending approval")
+            with st.expander("👀 View Pending Contacts", expanded=False):
+                try:
+                    from app.db.database import get_session, OutreachDB, JobDB
+                    s = get_session()
+                    pending_list = (
+                        s.query(OutreachDB, JobDB)
+                        .join(JobDB, OutreachDB.job_id == JobDB.id)
+                        .filter(OutreachDB.approval_status == "pending")
+                        .all()
+                    )
+                    for o_row, j_row in pending_list:
+                        st.markdown(f"• **{o_row.person_name}**")
+                        st.caption(f"  *{j_row.company}*")
+                    s.close()
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+    with st.expander("⚙️ Email / SMTP Settings", expanded=True):
+        render_smtp_config_form(key_prefix="sidebar")
+
+    st.divider()
+    st.caption(f"DB: `{settings.database_url}`")
+    st.caption("v0.2.0 · Phase A MVP")
+
+
+# =============================================================================
+# Screen 1: Analyze Job
+# =============================================================================
+if screen == "🔍 Analyze Job":
+    # Ensure session state form keys exist
+    if "form_counter" not in st.session_state:
+        st.session_state["form_counter"] = 0
+    if "form_company" not in st.session_state:
+        st.session_state["form_company"] = ""
+    if "form_title" not in st.session_state:
+        st.session_state["form_title"] = ""
+    if "form_location" not in st.session_state:
+        st.session_state["form_location"] = ""
+    if "form_url" not in st.session_state:
+        st.session_state["form_url"] = ""
+    if "form_work_model" not in st.session_state:
+        st.session_state["form_work_model"] = ""
+    if "form_country" not in st.session_state:
+        st.session_state["form_country"] = ""
+    if "form_jd" not in st.session_state:
+        st.session_state["form_jd"] = ""
+
+    if "load_job_id" in st.session_state:
+        load_jid = st.session_state.pop("load_job_id")
+        loaded_brief = repo.get_brief_for_job(load_jid)
+        if loaded_brief:
+            st.session_state["form_company"] = (loaded_brief.job.company or "").strip()
+            st.session_state["form_title"] = (loaded_brief.job.title or "").strip()
+            st.session_state["form_location"] = loaded_brief.job.location or ""
+            st.session_state["form_url"] = loaded_brief.job.source_url or loaded_brief.job.official_url or ""
+            st.session_state["form_work_model"] = loaded_brief.job.work_model or ""
+            st.session_state["form_country"] = loaded_brief.job.country or ""
+            st.session_state["form_jd"] = loaded_brief.job.description or ""
+            st.session_state["form_counter"] = st.session_state.get("form_counter", 0) + 1
+            st.session_state["last_brief"] = loaded_brief
+        else:
+            loaded_job = repo.get_job(load_jid)
+            if loaded_job:
+                st.session_state["form_company"] = (loaded_job.company or "").strip()
+                st.session_state["form_title"] = (loaded_job.title or "").strip()
+                st.session_state["form_location"] = loaded_job.location or ""
+                st.session_state["form_url"] = loaded_job.source_url or loaded_job.official_url or ""
+                st.session_state["form_work_model"] = loaded_job.work_model or ""
+                st.session_state["form_country"] = loaded_job.country or ""
+                st.session_state["form_jd"] = loaded_job.description or ""
+                st.session_state["form_counter"] = st.session_state.get("form_counter", 0) + 1
+
+    def reset_analyze_screen():
+        st.session_state["form_counter"] = st.session_state.get("form_counter", 0) + 1
+        st.session_state["form_company"] = ""
+        st.session_state["form_title"] = ""
+        st.session_state["form_location"] = ""
+        st.session_state["form_url"] = ""
+        st.session_state["form_work_model"] = ""
+        st.session_state["form_country"] = ""
+        st.session_state["form_jd"] = ""
+        st.session_state.pop("last_brief", None)
+
+    head_col1, head_col2 = st.columns([5, 1])
+    with head_col1:
+        st.title("🔍 Analyze Job")
+        st.caption(
+            "Paste a job description to run the full qualification pipeline: "
+            "Parse → Hard Gates → Strategic Fit → ATS → Evidence Map → Persist"
+        )
+    with head_col2:
+        st.write("")
+        st.write("")
+        if st.button("🧹 Clear Screen", key="btn_clear_screen_top", use_container_width=True, help="Clear form inputs and previous analysis results"):
+            reset_analyze_screen()
+            st.rerun()
+
+    work_model_options = ["", "remote", "hybrid", "on-site"]
+    current_wm = st.session_state["form_work_model"]
+    wm_index = work_model_options.index(current_wm) if current_wm in work_model_options else 0
+
+    country_options = ["", "Canada", "United States"]
+    current_country = (st.session_state.get("form_country") or "").strip()
+    if current_country.upper() in ("CA", "CAN"):
+        current_country = "Canada"
+    elif current_country.upper() in ("US", "USA", "U.S.", "UNITED STATES"):
+        current_country = "United States"
+    c_index = country_options.index(current_country) if current_country in country_options else 0
+
+    form_id = f"analyze_job_form_{st.session_state['form_counter']}"
+    with st.form(form_id):
+        col1, col2 = st.columns(2)
+        with col1:
+            company = st.text_input(
+                "Company *",
+                value=st.session_state["form_company"],
+                placeholder="e.g. Shopify",
+            )
+            title = st.text_input(
+                "Job Title *",
+                value=st.session_state["form_title"],
+                placeholder="e.g. Senior Technical Program Manager",
+            )
+        with col2:
+            location = st.text_input(
+                "Location",
+                value=st.session_state["form_location"],
+                placeholder="e.g. Toronto, ON (Remote)",
+            )
+            url = st.text_input(
+                "Source URL",
+                value=st.session_state["form_url"],
+                placeholder="https://careers.company.com/job/...",
+            )
+            work_model = st.selectbox("Work Model", work_model_options, index=wm_index)
+            country = st.selectbox("Country", country_options, index=c_index)
+
+        jd_text = st.text_area(
+            "Job Description *",
+            value=st.session_state["form_jd"],
+            height=320,
+            placeholder="Paste the full job description here…",
+        )
+        write_excel = st.checkbox("Update Excel tracker", value=True)
+
+        btn_c1, btn_c2 = st.columns([3, 1])
+        with btn_c1:
+            submitted = st.form_submit_button("🚀 Run Analysis", type="primary", use_container_width=True)
+        with btn_c2:
+            cleared = st.form_submit_button("🧹 Clear Form", use_container_width=True)
+
+    if cleared:
+        reset_analyze_screen()
+        st.rerun()
+
+    if submitted:
+        # Persist form inputs in session state so they never vanish
+        st.session_state["form_company"] = company
+        st.session_state["form_title"] = title
+        st.session_state["form_location"] = location
+        st.session_state["form_url"] = url
+        st.session_state["form_work_model"] = work_model
+        st.session_state["form_country"] = country
+        st.session_state["form_jd"] = jd_text
+
+        if not company or not title or not jd_text.strip():
+            st.error("Company, Job Title, and Job Description are required.")
+        else:
+            with st.spinner("Running qualification pipeline…"):
+                try:
+                    brief = process_job(
+                        jd_text=jd_text,
+                        company=company,
+                        title=title,
+                        location=location or None,
+                        url=url or None,
+                        work_model=work_model or None,
+                        country=country or None,
+                        write_excel=write_excel,
+                    )
+                    st.session_state["last_brief"] = brief
+                    st.success(f"✅ Analysis complete — Job ID: {brief.job.id}")
+                except Exception as exc:
+                    st.error(f"Pipeline error: {exc}")
+                    st.exception(exc)
+                    brief = None
+
+            if brief:
+                _render_brief(brief)
+
+    elif "last_brief" in st.session_state:
+        st.info("Showing last analyzed job. Submit a new JD to re-analyze.")
+        _render_brief(st.session_state["last_brief"])
+
+
+# =============================================================================
+# Screen 2: People & Outreach
+# =============================================================================
+elif screen == "👥 People & Outreach":
+    st.title("👥 People & Outreach")
+    st.caption(
+        "Add hiring chain contacts, generate evidence-grounded drafts, "
+        "and approve/edit/skip each message. No message is sent automatically."
+    )
+
+    jobs = repo.list_jobs(limit=50)
+    if not jobs:
+        st.info("No jobs found. Analyze a job first.")
+        st.stop()
+
+    job_options = {f"{j.company} — {j.title} (ID:{j.id})": j.id for j in jobs}
+    default_job_idx = 0
+    target_outreach_jid = st.session_state.pop("selected_outreach_job_id", None)
+    if target_outreach_jid:
+        for idx, (lbl, jid) in enumerate(job_options.items()):
+            if jid == target_outreach_jid:
+                default_job_idx = idx
+                break
+
+    selected_label = st.selectbox("Select Job", list(job_options.keys()), index=default_job_idx)
+    selected_job_id = job_options[selected_label]
+    selected_job = next(j for j in jobs if j.id == selected_job_id)
+
+    st.markdown(
+        f"**Target Vacancy:** **{selected_job.company}** — *{selected_job.title}* "
+        f"| 📍 {selected_job.location or 'Location open'} | 🏷️ {selected_job.role_family or 'Technical Program Management'}"
+    )
+
+    app_rec = repo.get_application_for_job(selected_job_id)
+    if app_rec and app_rec.status == "applied":
+        applied_date_str = app_rec.applied_at.strftime('%B %d, %Y') if app_rec.applied_at else "Recently"
+        channel_name = app_rec.channel.replace('_', ' ').title() if app_rec.channel else "Company Site"
+        rel_time = f" ({format_relative_time(app_rec.applied_at)})" if app_rec.applied_at else ""
+        st.success(
+            f"📬 **Application Status: Applied via {channel_name} on {applied_date_str}{rel_time}** "
+            f"· Confirmed via LinkedIn · Reaching out to recruiters and hiring managers now is ideal!"
+        )
+    elif app_rec and app_rec.status != "draft":
+        st.info(f"📋 **Application Status:** {app_rec.status.title()}")
+
+    st.divider()
+
+    if "people_flash_msg" in st.session_state:
+        st.success(st.session_state.pop("people_flash_msg"))
+
+    people = repo.get_people_for_job(selected_job_id)
+    outreach_records = repo.get_outreach_for_job(selected_job_id)
+    evidence = load_evidence()
+    outreach_map = {r.person_id: r for r in outreach_records if r.person_id}
+
+    pending_records = [r for r in outreach_records if r.approval_status == OutreachApproval.pending]
+    pending_count = len(pending_records)
+    approved_count = sum(1 for r in outreach_records if r.approval_status == OutreachApproval.approved)
+
+    tab_approval, tab_discovery = st.tabs([
+        f"📬 Outreach Review & Approval ({pending_count} pending)",
+        f"🤖 Automatic Contact Discovery & Sourcing",
+    ])
+
+    # ═════════════════════════════════════════════════════════════════════════
+    # TAB 1: OUTREACH REVIEW & APPROVAL QUEUE
+    # ═════════════════════════════════════════════════════════════════════════
+    with tab_approval:
+        st.markdown(f"### 📬 Outreach Review Queue ({pending_count} Pending)")
+        st.caption(
+            "Review personalized, evidence-grounded outreach messages. "
+            "Approve messages to mark them ready for sending, or edit them directly."
+        )
+
+        contacted_count = sum(1 for r in outreach_records if r.contacted_at is not None)
+        m1, m2, m3, m4, m5 = st.columns([1, 1, 1, 1, 2])
+        with m1:
+            st.metric("Total Contacts", len(people))
+        with m2:
+            st.metric("⏳ Pending Approval", pending_count)
+        with m3:
+            st.metric("✅ Approved", approved_count)
+        with m4:
+            st.metric("📨 Sent via Email", contacted_count)
+        with m5:
+            if pending_count > 0:
+                if st.button("⚡ Approve All Pending Messages", type="primary", use_container_width=True, key=f"btn_appr_all_{selected_job_id}"):
+                    for rec in pending_records:
+                        repo.update_outreach_status(rec.id, OutreachApproval.approved, edited_draft=rec.draft)
+                    st.success(f"✅ Approved all {pending_count} pending outreach messages!")
+                    st.rerun()
+
+        st.divider()
+
+        if not people:
+            st.info(
+                f"ℹ️ **No contacts in hiring chain for {selected_job.company} yet.** "
+                "Switch to the **'🤖 Automatic Contact Discovery & Sourcing'** tab to search for stakeholders, or add verified contacts manually below."
+            )
+        else:
+            for person in sorted(people, key=lambda p: p.outreach_priority):
+                draft_rec = outreach_map.get(person.id)
+                status_val = draft_rec.approval_status.value if draft_rec else "no draft"
+                
+                if draft_rec and draft_rec.contacted_at:
+                    status_badge = "📨 Sent via Email"
+                else:
+                    status_badge = {
+                        "approved": "✅ Approved",
+                        "edited": "✏️ Edited",
+                        "skipped": "⏭️ Skipped",
+                        "pending": "⏳ Pending Approval",
+                    }.get(status_val, "❓ No Draft")
+
+                prio_icons = {1: "🥇", 2: "🥈", 3: "👥", 4: "🏛️"}
+                prio_icon = prio_icons.get(person.outreach_priority, "📌")
+
+                with st.container():
+                    p_col1, p_col2 = st.columns([3, 1])
+                    with p_col1:
+                        role_label = person.person_type.value.replace("_", " ").title()
+                        st.markdown(
+                            f"#### {prio_icon} Priority #{person.outreach_priority} · **{person.name}** "
+                            f"<span class='evidence-tag'>{role_label}</span> "
+                            f"<span style='background:#1e293b;border:1px solid #475569;color:#94a3b8;border-radius:6px;padding:2px 8px;font-size:0.75rem'>Suggested / Inferred Lead</span>",
+                            unsafe_allow_html=True,
+                        )
+                        st.markdown(f"**Title:** *{person.current_title}* at **{person.company}**")
+                        st.caption(f"📌 **Role Relationship:** {person.relationship_to_job}")
+                        if person.source_url:
+                            st.markdown(f"[🔗 View LinkedIn Profile / Directory]({person.source_url})")
+
+                        with st.expander("⚙️ Adjust Role Archetype or Priority", expanded=False):
+                            ec1, ec2, ec3 = st.columns([2, 1, 1])
+                            with ec1:
+                                type_vals = [e.value for e in PersonType]
+                                cur_t_idx = type_vals.index(person.person_type.value) if person.person_type.value in type_vals else 0
+                                new_t = st.selectbox("Role Archetype", type_vals, index=cur_t_idx, key=f"edit_ptype_{person.id}")
+                            with ec2:
+                                new_p = st.number_input("Priority", min_value=1, max_value=99, value=person.outreach_priority, key=f"edit_prio_{person.id}")
+                            with ec3:
+                                st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+                                if st.button("💾 Save", key=f"btn_save_role_{person.id}", use_container_width=True):
+                                    updated_person = person.model_copy(update={
+                                        "person_type": PersonType(new_t),
+                                        "outreach_priority": int(new_p),
+                                    })
+                                    repo.save_person(selected_job_id, updated_person)
+                                    st.session_state["people_flash_msg"] = f"✅ Updated {person.name}'s role to **{new_t}** (Priority #{new_p})."
+                                    st.rerun()
+
+                    with p_col2:
+                        st.markdown(f"**Approval Status:** `{status_badge}`")
+                        if not draft_rec:
+                            if st.button("➕ Generate Draft", key=f"gen_draft_{person.id}", type="primary", use_container_width=True):
+                                rec = message_generator.build_draft(job=selected_job, person=person, evidence=evidence)
+                                rec = rec.model_copy(update={
+                                    "job_id": selected_job_id,
+                                    "person_id": person.id,
+                                    "recipient_email": email_service.suggest_email_for_contact(person.name, person.company),
+                                    "subject": email_service.generate_email_subject(selected_job.title, candidate_name=cand_name, company=selected_job.company),
+                                })
+                                repo.save_outreach(rec)
+                                st.rerun()
+                        if st.button("🗑️ Remove Contact", key=f"del_person_{person.id}", help=f"Remove {person.name} from hiring chain", use_container_width=True):
+                            repo.delete_person(person.id)
+                            st.session_state["people_flash_msg"] = f"🗑️ Removed **{person.name}** from hiring chain."
+                            st.rerun()
+
+                    if draft_rec:
+                        st.markdown("**Draft Outreach Message:**")
+                        raw_draft = draft_rec.draft or ""
+                        first_name = (person.name.split()[0] if person.name else "").strip()
+                        if first_name.lower() in ("talent", "recruiter", "hiring", "manager"):
+                            from app.services.message_generator import get_contact_first_name
+                            first_name = get_contact_first_name(person.name)
+
+                        # Clean any legacy generic greeting if present
+                        if "Hi Talent," in raw_draft or "Hi Talent Acquisition," in raw_draft:
+                            raw_draft = re.sub(r"^Hi Talent( Acquisition)?,", f"Hi {first_name},", raw_draft)
+                            repo.update_outreach_status(draft_rec.id, draft_rec.approval_status, edited_draft=raw_draft)
+
+                        sess_key = f"edit_draft_{draft_rec.id}"
+                        if sess_key in st.session_state and "Hi Talent," in str(st.session_state[sess_key]):
+                            st.session_state[sess_key] = re.sub(r"^Hi Talent( Acquisition)?,", f"Hi {first_name},", st.session_state[sess_key])
+
+                        edited_text = st.text_area(
+                            f"Message draft for {person.name}:",
+                            value=raw_draft,
+                            height=180,
+                            key=sess_key,
+                            label_visibility="collapsed",
+                        )
+                        if draft_rec.evidence_ids:
+                            ev_tags = " ".join(f"<span class='evidence-tag'>{eid}</span>" for eid in draft_rec.evidence_ids)
+                            st.markdown(f"Verified Evidence Grounding: {ev_tags}", unsafe_allow_html=True)
+                        
+                        btn_c1, btn_c2, btn_c3 = st.columns([2, 2, 2])
+                        with btn_c1:
+                            if st.button(
+                                "✅ Approve",
+                                key=f"appr_{draft_rec.id}",
+                                type="primary" if draft_rec.approval_status != OutreachApproval.approved else "secondary",
+                                disabled=draft_rec.approval_status == OutreachApproval.approved,
+                                use_container_width=True,
+                            ):
+                                repo.update_outreach_status(draft_rec.id, OutreachApproval.approved, edited_draft=edited_text)
+                                st.success(f"Approved message for {person.name}!")
+                                st.rerun()
+                        with btn_c2:
+                            if st.button("💾 Save Edits", key=f"save_edit_{draft_rec.id}", use_container_width=True):
+                                repo.update_outreach_status(draft_rec.id, OutreachApproval.edited, edited_draft=edited_text)
+                                st.success("Saved message edits!")
+                                st.rerun()
+                        with btn_c3:
+                            if st.button("⏭️ Skip", key=f"skip_btn_{draft_rec.id}", use_container_width=True):
+                                repo.update_outreach_status(draft_rec.id, OutreachApproval.skipped)
+                                st.info("Marked as skipped.")
+                                st.rerun()
+
+                        # ── IN-APP EMAIL DISPATCH CENTER ──
+                        st.markdown("---")
+                        st.markdown(f"##### 📨 Send Email to {person.name} Directly from Application")
+
+                        is_approved = (draft_rec.approval_status == OutreachApproval.approved)
+
+                        suggested_email = (
+                            getattr(person, "email", None)
+                            or getattr(draft_rec, "recipient_email", None)
+                            or email_service.suggest_email_for_contact(person.name, person.company)
+                        )
+                        suggested_subj = (
+                            getattr(draft_rec, "subject", None)
+                            or email_service.generate_email_subject(
+                                selected_job.title,
+                                candidate_name=cand_name,
+                                company=selected_job.company,
+                            )
+                        )
+
+                        if draft_rec.contacted_at:
+                            contacted_str = draft_rec.contacted_at.strftime("%Y-%m-%d %H:%M UTC") if hasattr(draft_rec.contacted_at, "strftime") else str(draft_rec.contacted_at)
+                            st.success(
+                                f"✅ **Email Sent via Application** on {contacted_str} to `{getattr(draft_rec, 'recipient_email', None) or suggested_email}`."
+                            )
+                        elif is_approved:
+                            st.success("✅ **Message Approved**: Ready for direct email dispatch.")
+                        else:
+                            st.warning(
+                                f"🔒 **Email Dispatch Locked**: {person.name} has not been approved yet ({status_badge}). "
+                                "Review the message draft and click **'✅ Approve'** above before you can send an email."
+                            )
+
+                        e_col1, e_col2 = st.columns([1, 1])
+                        with e_col1:
+                            target_email = st.text_input(
+                                "Recipient Work Email:",
+                                value=suggested_email,
+                                key=f"recip_email_{draft_rec.id}",
+                                help=f"Inferred corporate address: {suggested_email}",
+                            )
+                        with e_col2:
+                            target_subject = st.text_input(
+                                "Email Subject:",
+                                value=suggested_subj,
+                                key=f"subj_email_{draft_rec.id}",
+                            )
+
+                        snd_col1, snd_col2, snd_col3 = st.columns([2, 2, 2])
+
+                        with snd_col1:
+                            btn_send_label = "🚀 Send Email Now" if is_approved else "🔒 Send Email (Approval Required)"
+                            if st.button(
+                                btn_send_label,
+                                key=f"btn_send_now_{draft_rec.id}",
+                                type="primary" if is_approved else "secondary",
+                                disabled=not is_approved,
+                                help="Send email directly via SMTP" if is_approved else "Approval required: Please review and click '✅ Approve' above first.",
+                                use_container_width=True,
+                            ):
+                                if not is_approved or draft_rec.approval_status != OutreachApproval.approved:
+                                    st.error(f"⛔ Security Violation: Cannot send email to {person.name} because outreach is not approved.")
+                                    st.stop()
+
+                                if not target_email or "@" not in target_email:
+                                    st.error("Please provide a valid recipient email address.")
+                                else:
+                                    cfg = email_service.load_saved_email_config()
+                                    if not cfg.get("smtp_host") or not cfg.get("smtp_username") or not cfg.get("smtp_password"):
+                                        st.warning("⚠️ SMTP credentials not fully configured. Expand '⚙️ Configure SMTP Server' below or in the sidebar to add your email credentials, or use '🧪 Simulated Send' to test.")
+                                    else:
+                                        with st.spinner(f"Connecting to SMTP server and sending to {target_email}..."):
+                                            res = email_service.send_outreach_email(
+                                                outreach=draft_rec,
+                                                to_email=target_email,
+                                                subject=target_subject,
+                                                body=edited_text,
+                                            )
+                                            if res.success:
+                                                repo.record_email_sent(draft_rec.id, recipient_email=target_email, subject=target_subject, sent_body=edited_text)
+                                                p_email = getattr(person, "email", None)
+                                                if target_email and (not p_email or p_email != target_email):
+                                                    repo.update_person_email(person.id, target_email)
+                                                st.success(f"🎉 Email successfully dispatched to {target_email}!")
+                                                st.balloons()
+                                                st.rerun()
+                                            else:
+                                                st.error(f"❌ Failed to dispatch email: {res.message}")
+
+                        with snd_col2:
+                            btn_sim_label = "🧪 Simulated Send (Test)" if is_approved else "🔒 Simulated Send (Approval Required)"
+                            if st.button(
+                                btn_sim_label,
+                                key=f"btn_sim_send_{draft_rec.id}",
+                                disabled=not is_approved,
+                                help="Test email flow without live SMTP" if is_approved else "Approval required: Please review and click '✅ Approve' above first.",
+                                use_container_width=True,
+                            ):
+                                if not is_approved or draft_rec.approval_status != OutreachApproval.approved:
+                                    st.error(f"⛔ Security Violation: Cannot send simulated email to {person.name} because outreach is not approved.")
+                                    st.stop()
+
+                                if not target_email or "@" not in target_email:
+                                    st.error("Please provide a valid recipient email address.")
+                                else:
+                                    res = email_service.send_outreach_email(
+                                        outreach=draft_rec,
+                                        to_email=target_email,
+                                        subject=target_subject,
+                                        body=edited_text,
+                                        simulated=True,
+                                    )
+                                    if res.success:
+                                        repo.record_email_sent(draft_rec.id, recipient_email=target_email, subject=target_subject, sent_body=edited_text)
+                                        p_email = getattr(person, "email", None)
+                                        if target_email and (not p_email or p_email != target_email):
+                                            repo.update_person_email(person.id, target_email)
+                                        st.success(f"🧪 [SIMULATION] Email prepared, validated, and logged as sent to {target_email}!")
+                                        st.rerun()
+                                    else:
+                                        st.error(res.message)
+
+                        with snd_col3:
+                            if is_approved:
+                                mailto_link = email_service.generate_mailto_link(target_email, target_subject, edited_text)
+                                st.link_button("✉️ Open in Email App", mailto_link, use_container_width=True, help="Launch default desktop mail app (Mail, Outlook, etc.) with To, Subject, and Body filled.")
+                            else:
+                                st.button("🔒 Open in Email App", key=f"btn_mailto_dis_{draft_rec.id}", disabled=True, use_container_width=True, help="Approval required: Please review and click '✅ Approve' above first.")
+
+                        with st.expander("⚙️ Configure SMTP Server for In-App Emailing", expanded=False):
+                            render_smtp_config_form(key_prefix=f"card_{draft_rec.id}")
+                    st.divider()
+
+    # ═════════════════════════════════════════════════════════════════════════
+    # TAB 2: AUTOMATIC DISCOVERY & SOURCING
+    # ═════════════════════════════════════════════════════════════════════════
+    with tab_discovery:
+        st.markdown("### 🤖 Automatic Stakeholder Discovery & Sourcing Engine")
+        st.caption(
+            "Automatically scans company organizational charts, talent teams, and public profiles "
+            "to discover hiring managers, recruiters, peers, and sponsors, and populates them into your review queue."
+        )
+
+        discovered_contacts = []
+        if hasattr(linkedin_finder, "get_discovered_contacts"):
+            try:
+                discovered_contacts = linkedin_finder.get_discovered_contacts(selected_job)
+            except Exception:
+                discovered_contacts = []
+
+        current_names = {p.name.strip().lower() for p in people}
+        unadded_count = sum(1 for c in discovered_contacts if c["name"].strip().lower() not in current_names)
+
+        # 1-Click Auto-Populate Banner
+        if not discovered_contacts:
+            st.info(
+                f"ℹ️ **No verified contacts automatically discovered for {selected_job.company}.**\n\n"
+                "Please use the targeted live **LinkedIn Search Strategies** or **Google X-Ray** queries below to identify real stakeholders, "
+                "or paste an individual's LinkedIn profile in **Quick Import**."
+            )
+        else:
+            disc_col1, disc_col2 = st.columns([3, 1])
+            with disc_col1:
+                st.info(
+                    f"💡 **Discovery Engine Ready:** Identified **{len(discovered_contacts)} key stakeholders** "
+                    f"for **{selected_job.company}** ({unadded_count} new to import)."
+                )
+            with disc_col2:
+                if st.button("🚀 Auto-Populate All", type="primary", use_container_width=True, key=f"auto_pop_{selected_job_id}"):
+                    added_names = []
+                    for c in discovered_contacts:
+                        if c["name"].strip().lower() not in current_names:
+                            inferred_email = email_service.suggest_email_for_contact(c["name"], c["company"])
+                            p_new = PersonTarget(
+                                name=c["name"],
+                                current_title=c["current_title"],
+                                company=c["company"],
+                                person_type=c["person_type"],
+                                relationship_to_job=c["relationship_to_job"],
+                                relationship_status="inferred",
+                                confidence=c["confidence"],
+                                source_url=c.get("source_url"),
+                                checked_at=datetime.now(timezone.utc),
+                                outreach_priority=c["priority"],
+                                email=inferred_email,
+                            )
+                            pid = repo.save_person(selected_job_id, p_new)
+                            rec = message_generator.build_draft(job=selected_job, person=p_new, evidence=evidence)
+                            rec = rec.model_copy(update={
+                                "job_id": selected_job_id,
+                                "person_id": pid,
+                                "recipient_email": inferred_email,
+                                "subject": email_service.generate_email_subject(selected_job.title, candidate_name=cand_name, company=selected_job.company),
+                            })
+                            repo.save_outreach(rec)
+                            added_names.append(c["name"])
+                    if added_names:
+                        st.session_state["people_flash_msg"] = f"🎉 Successfully added {len(added_names)} contacts and generated drafts for review!"
+                    else:
+                        st.info("All discovered stakeholders are already in the Hiring Chain.")
+                    st.rerun()
+
+        st.divider()
+
+        st.markdown("#### 👥 Identified Stakeholders & Hiring Chain Targets")
+        if not discovered_contacts:
+            st.info(
+                f"🔍 **No stakeholders discovered yet for {selected_job.company}.** "
+                "Use the search links or Google X-Ray strategies below to find hiring managers and recruiters on LinkedIn."
+            )
+        else:
+            for c in discovered_contacts:
+                is_already_added = c["name"].strip().lower() in current_names
+                inferred_email = email_service.suggest_email_for_contact(c["name"], c["company"])
+                with st.container():
+                    dcol1, dcol2 = st.columns([3, 1])
+                    with dcol1:
+                        badge_type = c["person_type"].value.replace("_", " ").title()
+                        st.markdown(
+                            f"**{c['name']}** — *{c['current_title']}* "
+                            f"<span class='evidence-tag'>{badge_type}</span> · `Priority #{c['priority']}`",
+                            unsafe_allow_html=True,
+                        )
+                        st.caption(f"📌 **Role Relationship:** {c['relationship_to_job']} | ✉️ `{inferred_email}`")
+                        if c.get("source_url"):
+                            st.markdown(f"[🔗 View LinkedIn Search Profile]({c['source_url']})")
+                    with dcol2:
+                        if is_already_added:
+                            st.success("✅ In Hiring Chain")
+                        else:
+                            if st.button("➕ Add & Generate Draft", key=f"add_disc_{selected_job_id}_{c['name']}", type="primary", use_container_width=True):
+                                p_new = PersonTarget(
+                                    name=c["name"],
+                                    current_title=c["current_title"],
+                                    company=c["company"],
+                                    person_type=c["person_type"],
+                                    relationship_to_job=c["relationship_to_job"],
+                                    relationship_status="inferred",
+                                    confidence=c["confidence"],
+                                    source_url=c.get("source_url"),
+                                    checked_at=datetime.now(timezone.utc),
+                                    outreach_priority=c["priority"],
+                                    email=inferred_email,
+                                    outreach_records=[],
+                                )
+                                pid = repo.save_person(selected_job_id, p_new)
+                                rec = message_generator.build_draft(job=selected_job, person=p_new, evidence=evidence)
+                                rec = rec.model_copy(update={
+                                    "job_id": selected_job_id,
+                                    "person_id": pid,
+                                    "recipient_email": inferred_email,
+                                    "subject": email_service.generate_email_subject(selected_job.title, candidate_name=cand_name, company=selected_job.company),
+                                })
+                                repo.save_outreach(rec)
+                                st.session_state["people_flash_msg"] = f"✅ Added **{c['name']}** to Hiring Chain! Switch to **📬 Outreach Review & Approval** tab to view draft."
+                                st.rerun()
+                st.divider()
+
+        # ── Quick Import from LinkedIn ─────────────────────────────────────────
+        st.markdown("### ⚡ Quick Import from LinkedIn")
+        st.caption(
+            "Paste a LinkedIn profile URL (e.g. `https://www.linkedin.com/in/derek-smockum-449879164/`) or a copied profile snippet. "
+            "The system will extract their name and generate a personalized outreach draft."
+        )
+
+        quick_input = st.text_area(
+            "Paste LinkedIn Profile URL or Bio Snippet",
+            placeholder="e.g. https://www.linkedin.com/in/derek-smockum-449879164/\nor\nDerek Smockum · 2nd | Senior Talent Acquisition Partner at Lightspeed",
+            height=85,
+            key=f"quick_li_input_{selected_job_id}",
+        )
+
+        if quick_input.strip():
+            parsed = linkedin_finder.parse_linkedin_input(quick_input, default_company=selected_job.company)
+            if parsed.get("error"):
+                st.error(f"⚠️ **Cannot Import Organization / Company Page:**\n\n{parsed['error']}")
+            else:
+                raw_name = parsed.get("name", "")
+                is_real = getattr(linkedin_finder, "is_real_person_name", lambda n: True)(raw_name)
+                if not is_real and raw_name:
+                    st.warning(
+                        f"⚠️ **Notice:** The detected name `'{raw_name}'` looks like an organization or title rather than an individual person. "
+                        "Please adjust the full name below."
+                    )
+                st.markdown("##### 👤 Detected Contact Details")
+                st.caption("Review or adjust details below before adding to the hiring chain:")
+                
+                qi_col1, qi_col2 = st.columns([1, 1])
+                with qi_col1:
+                    imp_name = st.text_input("Name", value=raw_name, key=f"imp_name_{selected_job_id}")
+                    imp_title = st.text_input(
+                        "Current Title",
+                        value=parsed.get("current_title", "") if parsed.get("current_title") != "Professional" else "",
+                        placeholder="e.g. Senior Technical Program Manager or Recruiter",
+                        key=f"imp_title_{selected_job_id}",
+                    )
+                with qi_col2:
+                    type_options = [e.value for e in PersonType]
+                    p_type_val = parsed.get("person_type", PersonType.hiring_manager)
+                    p_type_str = p_type_val.value if hasattr(p_type_val, "value") else str(p_type_val)
+                    type_idx = type_options.index(p_type_str) if p_type_str in type_options else 0
+                    imp_type = st.selectbox("Role Archetype", type_options, index=type_idx, key=f"imp_type_{selected_job_id}")
+                    imp_prio = st.number_input("Outreach Priority (1=first)", min_value=1, max_value=99, value=int(parsed.get("outreach_priority", 1)), key=f"imp_prio_{selected_job_id}")
+
+                q_btn1, q_btn2 = st.columns([2, 3])
+                with q_btn1:
+                    if st.button("➕ Add to Hiring Chain & Generate Draft", type="primary", use_container_width=True, key=f"btn_add_quick_{selected_job_id}"):
+                        final_name = imp_name.strip()
+                        final_title = imp_title.strip() or "Professional"
+                        if not getattr(linkedin_finder, "is_real_person_name", lambda n: True)(final_name):
+                            st.error(f"❌ Cannot add '{final_name}' — this appears to be a company or organization, not an individual person.")
+                        else:
+                            person = PersonTarget(
+                                name=final_name,
+                                current_title=final_title,
+                                company=parsed.get("company", selected_job.company),
+                                person_type=PersonType(imp_type),
+                                relationship_to_job=parsed.get("relationship_to_job", f"Key Contact at {selected_job.company}"),
+                                relationship_status="inferred",
+                                confidence=parsed.get("confidence", Confidence.medium),
+                                source_url=parsed.get("source_url"),
+                                checked_at=datetime.now(timezone.utc),
+                                outreach_priority=int(imp_prio),
+                            )
+                            pid = repo.save_person(selected_job_id, person)
+                            try:
+                                rec = message_generator.build_draft(job=selected_job, person=person, evidence=evidence)
+                                rec = rec.model_copy(update={"job_id": selected_job_id, "person_id": pid})
+                                repo.save_outreach(rec)
+                            except Exception:
+                                pass
+                            # Reset input field and store flash message
+                            st.session_state[f"quick_li_input_{selected_job_id}"] = ""
+                            st.session_state.pop(f"imp_name_{selected_job_id}", None)
+                            st.session_state.pop(f"imp_title_{selected_job_id}", None)
+                            st.session_state["people_flash_msg"] = f"✅ Added **{person.name}** ({person.current_title}) to Hiring Chain! Switch to the **📬 Outreach Review & Approval** tab to review and send."
+                            st.rerun()
+
+        st.divider()
+
+        # ── Manual Add ────────────────────────────────────────────────────────
+        with st.expander("🛠️ Manual Add / Custom Person", expanded=False):
+            with st.form("add_person_form"):
+                pc1, pc2, pc3 = st.columns(3)
+                with pc1:
+                    p_name = st.text_input("Full Name *")
+                    p_title_input = st.text_input("Current Title *")
+                with pc2:
+                    p_type = st.selectbox("Person Type", [e.value for e in PersonType])
+                    p_confidence = st.selectbox("Confidence", [e.value for e in Confidence])
+                with pc3:
+                    p_source = st.text_input("Source URL")
+                    p_relationship = st.text_input("Relationship to Vacancy")
+                    p_priority = st.number_input("Outreach Priority (1=first)", min_value=1, max_value=99, value=5)
+
+                p_connection = st.text_input("Connection Path (optional)")
+                add_person = st.form_submit_button("Add Person Manually", type="primary")
+
+            if add_person:
+                if not p_name or not p_title_input:
+                    st.error("Name and title are required.")
+                elif not getattr(linkedin_finder, "is_real_person_name", lambda n: True)(p_name.strip()):
+                    st.error(f"❌ '{p_name}' appears to be a company or organization rather than an individual person. Please enter an actual individual's name.")
+                else:
+                    person = PersonTarget(
+                        name=p_name.strip(),
+                        current_title=p_title_input.strip(),
+                        company=selected_job.company,
+                        person_type=PersonType(p_type),
+                        relationship_to_job=p_relationship or "Unknown",
+                        relationship_status="inferred",
+                        confidence=Confidence(p_confidence),
+                        source_url=p_source or None,
+                        checked_at=datetime.now(timezone.utc),
+                        connection_path=p_connection or None,
+                        outreach_priority=int(p_priority),
+                    )
+                    pid = repo.save_person(selected_job_id, person)
+                    try:
+                        rec = message_generator.build_draft(job=selected_job, person=person, evidence=evidence)
+                        rec = rec.model_copy(update={"job_id": selected_job_id, "person_id": pid})
+                        repo.save_outreach(rec)
+                    except Exception:
+                        pass
+                    st.session_state["people_flash_msg"] = f"✅ Added **{person.name}** ({person.current_title}) to Hiring Chain! Switch to the **📬 Outreach Review & Approval** tab to review and send."
+                    st.rerun()
+
+        # ── Raw Boolean & X-Ray Search Reference ──────────────────────────────
+        with st.expander("🔎 Raw Boolean & Google X-Ray Search Queries (Reference)", expanded=False):
+            st.caption("Pre-configured Boolean queries for manual exploration on LinkedIn or Google:")
+            strategies = linkedin_finder.build_search_strategies(selected_job)
+            r1_col1, r1_col2 = st.columns(2)
+            r2_col1, r2_col2 = st.columns(2)
+            grid_cols = [r1_col1, r1_col2, r2_col1, r2_col2]
+            for idx, strat in enumerate(strategies):
+                with grid_cols[idx % len(grid_cols)]:
+                    st.markdown(f"##### {strat.title}")
+                    st.markdown(f"**Target:** `{strat.target_roles}`")
+                    st.caption(strat.objective)
+                    sc1, sc2 = st.columns([1, 1])
+                    with sc1:
+                        st.link_button("🔵 Open in LinkedIn", strat.linkedin_url, type="primary", use_container_width=True)
+                    with sc2:
+                        st.link_button("🔍 Google X-Ray Search", strat.google_xray_url, use_container_width=True)
+                    st.code(strat.boolean_query, language="text")
+
+
+# =============================================================================
+# Screen 3: Application Record
+# =============================================================================
+elif screen == "📋 Application Record":
+    st.title("📋 Application Records")
+    st.caption("All analyzed jobs. System of record: SQLite.")
+
+    jobs = repo.list_jobs(limit=200)
+    if not jobs:
+        st.info("No jobs yet. Analyze a job from the 'Analyze Job' screen.")
+        st.stop()
+
+    tier_display_short = {
+        "tier_1": "🟢 Tier 1",
+        "tier_2": "🟡 Tier 2",
+        "tier_3": "🟠 Tier 3",
+        "barrier": "⚫ Barrier",
+        "do_not_pursue": "🔴 Do Not Pursue",
+    }
+
+    tier_key_map = {
+        "🟢 Tier 1": "tier_1",
+        "🟡 Tier 2": "tier_2",
+        "🟠 Tier 3": "tier_3",
+        "⚫ Barrier": "barrier",
+        "🔴 Do Not Pursue": "do_not_pursue",
+    }
+
+    f_col1, f_col2 = st.columns([2, 1])
+    with f_col1:
+        search = st.text_input("🔍 Filter by company or title", "")
+    with f_col2:
+        tier_filter = st.selectbox(
+            "Filter by Pursuit Tier",
+            ["All Tiers", "🟢 Tier 1", "🟡 Tier 2", "🟠 Tier 3", "⚫ Barrier", "🔴 Do Not Pursue"],
+        )
+
+    filtered = []
+    for j in jobs:
+        fit_i = repo.get_fit_for_job(j.id)
+        j_tier = fit_i.get("tier") if fit_i else None
+        if tier_filter != "All Tiers" and j_tier != tier_key_map.get(tier_filter):
+            continue
+        if search and (search.lower() not in j.company.lower() and search.lower() not in j.title.lower()):
+            continue
+        filtered.append(j)
+
+    st.caption(f"Showing {len(filtered)} of {len(jobs)} jobs")
+
+    for job in filtered:
+        app_rec = repo.get_application_for_job(job.id)
+        fit_info = repo.get_fit_for_job(job.id)
+        ats_info = repo.get_ats_for_job(job.id)
+
+        tier_tag = tier_display_short.get(fit_info.get("tier"), "⚪ Unassigned") if fit_info else "⚪ Unassigned"
+
+        status_tag = "Draft"
+        if app_rec and app_rec.status == "applied":
+            applied_str = app_rec.applied_at.strftime('%b %d, %Y') if app_rec.applied_at else "Recently"
+            status_tag = f"🟢 Applied ({applied_str})"
+        elif app_rec and app_rec.status != "draft":
+            status_tag = f"🔵 {app_rec.status.title()}"
+
+        with st.expander(
+            f"**{job.company}** — {job.title} · {tier_tag} · {status_tag} · {job.location or '?'}",
+            expanded=(job.id in [3, 4])
+        ):
+            c1, c2, c3, c4, c5 = st.columns(5)
+            c1.metric("Pursuit Tier", tier_tag)
+            c2.metric("Fit Score", f"{fit_info['weighted_score']:.1f}/100" if (fit_info and fit_info.get('weighted_score')) else "—")
+            c3.metric("ATS Readiness", f"{ats_info['readiness']:.0f}%" if (ats_info and ats_info.get('readiness')) else "—")
+            c4.metric("Application Status", app_rec.status.upper() if app_rec else "DRAFT")
+            c5.metric("Work Model", job.work_model or "—")
+
+            if app_rec and app_rec.status == "applied":
+                applied_date_fmt = app_rec.applied_at.strftime('%B %d, %Y') if app_rec.applied_at else "Recently"
+                channel_lbl = app_rec.channel.replace('_', ' ').title() if app_rec.channel else "Company Site"
+                rel_time = f" ({format_relative_time(app_rec.applied_at)})" if app_rec.applied_at else ""
+                st.success(
+                    f"📬 **Application Status: Applied on {channel_lbl} on {applied_date_fmt}{rel_time}**\n\n"
+                    f"• **Source:** {app_rec.status_source.title() if app_rec.status_source else 'LinkedIn'} application status confirmed.\n"
+                    f"• **Next Recommended Action:** {app_rec.next_action or 'Reach out to recruiter & hiring team for follow up.'}\n"
+                    f"• **Notes:** {app_rec.notes or 'None'}"
+                )
+            elif not app_rec or app_rec.status == "draft":
+                st.info(
+                    "📝 **Status: Draft (Ready to Apply)** · Not submitted yet. "
+                    "Click **Apply via LinkedIn** or **Company Careers** below, then click **Mark as Applied Today**."
+                )
+
+            import urllib.parse
+            j_comp = (job.company or "").strip()
+            j_title = (job.title or "").strip()
+            j_search_url = f"https://www.google.com/search?q={urllib.parse.quote_plus(f'{j_comp} {j_title} careers apply')}"
+
+            # Determine best LinkedIn and Company Portal URLs
+            j_src = (job.source_url or "").strip()
+            j_off = (job.official_url or "").strip()
+
+            li_apply_url = None
+            if j_src and "linkedin.com" in j_src.lower():
+                li_apply_url = j_src
+            elif j_off and "linkedin.com" in j_off.lower():
+                li_apply_url = j_off
+
+            portal_url = None
+            if j_off and "linkedin.com" not in j_off.lower():
+                portal_url = j_off
+
+            st.markdown("##### 🚀 Application Launchpad")
+            col_apply, col_portal, col_mark = st.columns([1.5, 1.2, 1.3])
+            with col_apply:
+                if li_apply_url:
+                    st.link_button("🚀 Apply via LinkedIn Job Post", li_apply_url, type="primary", use_container_width=True)
+                elif portal_url:
+                    st.link_button(f"🌐 Apply on {j_comp} Careers", portal_url, type="primary", use_container_width=True)
+                else:
+                    st.link_button("🌐 Search & Apply Online", j_search_url, type="primary", use_container_width=True)
+
+            with col_portal:
+                if portal_url:
+                    st.link_button("🏢 Company Careers Portal", portal_url, use_container_width=True)
+                else:
+                    st.link_button(f"🔍 Search {j_comp} Careers", j_search_url, use_container_width=True)
+
+            with col_mark:
+                if app_rec and app_rec.status == "applied":
+                    if st.button("↩️ Revert to Draft", key=f"revert_draft_{job.id}", use_container_width=True):
+                        repo.update_application_status(
+                            job_id=job.id,
+                            status="draft",
+                            notes="Reverted to draft by user",
+                        )
+                        st.info("Reverted application status back to Draft.")
+                        st.rerun()
+                else:
+                    applied_channel_val = "linkedin" if li_apply_url else "company_site"
+                    if st.button("✅ Mark as Applied Today", key=f"quick_apply_{job.id}", type="secondary" if li_apply_url else "primary", use_container_width=True):
+                        from datetime import datetime
+                        repo.update_application_status(
+                            job_id=job.id,
+                            status="applied",
+                            applied_at=datetime.utcnow(),
+                            channel=applied_channel_val,
+                            status_source="user_action",
+                            notes=f"Applied via {applied_channel_val.replace('_', ' ').title()}",
+                            next_action="Follow up with recruiter and hiring team within 3-5 business days",
+                        )
+                        st.success(f"🎉 Marked as Applied via {applied_channel_val.replace('_', ' ').title()} today!")
+                        st.rerun()
+
+            c_jump1, c_jump2 = st.columns(2)
+            with c_jump1:
+                if st.button("📄 View Tailored Resume & Fit Analysis in Analyze Job", key=f"btn_res_jump_{job.id}", use_container_width=True):
+                    st.session_state["load_job_id"] = job.id
+                    st.session_state["nav_screen"] = "🔍 Analyze Job"
+                    st.rerun()
+            with c_jump2:
+                if st.button("👥 Open Hiring Team & Outreach for this Job", key=f"btn_out_jump_{job.id}", use_container_width=True):
+                    st.session_state["selected_outreach_job_id"] = job.id
+                    st.session_state["nav_screen"] = "👥 People & Outreach"
+                    st.rerun()
+
+            with st.expander("ℹ️ How to apply for this job using Job Search Agent", expanded=False):
+                st.markdown(
+                    f"**Follow these 4 steps to maximize your interview conversion:**\n\n"
+                    f"1. **Tailored Resume**: Click **📄 View Tailored Resume & Fit Analysis** above to review your ATS score and download your tailored Word (.docx) or PDF resume for {j_comp}.\n"
+                    f"2. **Submit Application**: Click **🚀 Apply via LinkedIn Job Post** (or Company Careers Portal) to open the live job vacancy and submit your tailored resume.\n"
+                    f"3. **Track Status**: Click **✅ Mark as Applied Today** above once submitted to log the application date and sync your metrics.\n"
+                    f"4. **Outreach Hiring Team**: Click **👥 Open Hiring Team & Outreach** to contact verified recruiters and leaders at {j_comp} for higher conversion."
+                )
+
+            with st.expander("✏️ Update Application Status, Tier & Notes", expanded=False):
+                with st.form(key=f"update_app_form_{job.id}"):
+                    curr_status = app_rec.status if app_rec else "draft"
+                    status_choices = ["draft", "applied", "interviewing", "offer", "rejected", "withdrawn"]
+                    stat_idx = status_choices.index(curr_status) if curr_status in status_choices else 0
+
+                    col_s1, col_s2 = st.columns(2)
+                    with col_s1:
+                        new_status = st.selectbox("Status", status_choices, index=stat_idx)
+                        new_channel = st.selectbox("Channel", ["company_site", "linkedin", "referral", "other"], index=0 if (not app_rec or app_rec.channel == "company_site") else 1)
+                    with col_s2:
+                        tier_choices = ["tier_1", "tier_2", "tier_3", "barrier", "do_not_pursue"]
+                        tier_labels = ["🟢 Tier 1 (Strong Pursue ≥80)", "🟡 Tier 2 (Pursue 70–79)", "🟠 Tier 3 (Selective Pursue 60–69)", "⚫ Barrier (Gate Obstacle)", "🔴 Do Not Pursue (<60)"]
+                        curr_t = fit_info.get("tier", "tier_3") if fit_info else "tier_3"
+                        curr_t_idx = tier_choices.index(curr_t) if curr_t in tier_choices else 2
+                        new_tier_label = st.selectbox("Pursuit Tier Level", tier_labels, index=curr_t_idx)
+                        new_tier = tier_choices[tier_labels.index(new_tier_label)]
+
+                    new_notes = st.text_input("Notes", value=app_rec.notes if (app_rec and app_rec.notes) else "")
+                    save_app = st.form_submit_button("💾 Save Status & Tier")
+                    if save_app:
+                        from datetime import datetime
+                        repo.update_application_status(
+                            job_id=job.id,
+                            status=new_status,
+                            applied_at=app_rec.applied_at if app_rec else datetime.utcnow(),
+                            channel=new_channel,
+                            notes=new_notes,
+                        )
+                        repo.update_job_tier(job_id=job.id, tier=new_tier)
+                        st.success("Application status and Pursuit Tier updated!")
+                        st.rerun()
+
+            ref_col1, ref_col2 = st.columns([1, 1])
+            with ref_col1:
+                if portal_url:
+                    st.markdown(f"**Company Portal:** [{portal_url[:45]}...]({portal_url})")
+            with ref_col2:
+                if li_apply_url:
+                    st.markdown(f"**Source (LinkedIn):** [View Posting]({li_apply_url})")
+
+            st.caption(
+                f"Added: {job.created_at.strftime('%Y-%m-%d %H:%M') if job.created_at else '—'}"
+            )
+
+
+# =============================================================================
+# Screen 4: Dashboard
+# =============================================================================
+elif screen == "📊 Dashboard":
+    st.title("📊 Dashboard")
+    st.caption("Aggregate metrics across all analyzed jobs.")
+
+    try:
+        stats = repo.get_dashboard_stats()
+    except Exception as exc:
+        st.error(f"Could not load stats: {exc}")
+        stats = {}
+
+    if not stats or stats.get("total_jobs", 0) == 0:
+        st.info("No jobs analyzed yet. Run the pipeline on the 'Analyze Job' screen.")
+    else:
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Total Jobs Analyzed", stats["total_jobs"])
+        m2.metric("Avg ATS Readiness", f"{stats['avg_ats_readiness']:.1f}%")
+        m3.metric("Outreach Pending Approval", stats["outreach_pending"])
+        m4.metric("Sync Conflicts Pending", stats["conflicts_pending"])
+
+        st.divider()
+        st.subheader("Jobs by Pursuit Tier")
+        tiers = stats.get("by_tier", {})
+        tier_display = {
+            "tier_1": "🟢 Tier 1 (≥80)",
+            "tier_2": "🟡 Tier 2 (70–79)",
+            "tier_3": "🟠 Tier 3 (60–69)",
+            "do_not_pursue": "🔴 Do Not Pursue (<60)",
+            "barrier": "⚫ Barrier",
+        }
+        if tiers:
+            cols = st.columns(len(tiers))
+            for idx, (tier_val, count) in enumerate(tiers.items()):
+                cols[idx].metric(tier_display.get(tier_val, tier_val), count)
+        else:
+            st.info("No fit scores computed yet.")
+
+        st.divider()
+        st.subheader("Recent Jobs & Pursuit Tiers")
+        jobs = repo.list_jobs(limit=50)
+        if jobs:
+            import pandas as pd
+
+            tier_display_map = {
+                "tier_1": "🟢 Tier 1",
+                "tier_2": "🟡 Tier 2",
+                "tier_3": "🟠 Tier 3",
+                "barrier": "⚫ Barrier",
+                "do_not_pursue": "🔴 Do Not Pursue",
+            }
+
+            rows = []
+            for j in jobs:
+                app_r = repo.get_application_for_job(j.id)
+                status_display = j.status.value
+                if app_r and app_r.status == "applied":
+                    app_dt = app_r.applied_at.strftime("%b %d") if app_r.applied_at else ""
+                    status_display = f"🟢 Applied ({app_dt})" if app_dt else "🟢 Applied"
+                elif app_r and app_r.status != "draft":
+                    status_display = f"🔵 {app_r.status.title()}"
+
+                fit_info = repo.get_fit_for_job(j.id)
+                ats_info = repo.get_ats_for_job(j.id)
+
+                tier_raw = fit_info.get("tier") if fit_info else None
+                tier_badge = tier_display_map.get(tier_raw, "⚪ Unassigned") if tier_raw else "⚪ Unassigned"
+                score_str = f"{fit_info['weighted_score']:.1f}" if (fit_info and fit_info.get("weighted_score") is not None) else "—"
+                ats_str = f"{ats_info['readiness']:.1f}%" if (ats_info and ats_info.get("readiness") is not None) else "—"
+
+                rows.append({
+                    "ID": j.id,
+                    "Company": j.company.strip(),
+                    "Title": j.title.strip(),
+                    "Pursuit Tier": tier_badge,
+                    "Fit Score": score_str,
+                    "ATS Readiness": ats_str,
+                    "Location": j.location or "—",
+                    "Application Status": status_display,
+                    "Added": j.created_at.strftime("%Y-%m-%d") if j.created_at else "—",
+                })
+            df = pd.DataFrame(rows)
+            st.dataframe(
+                df,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Pursuit Tier": st.column_config.TextColumn("Pursuit Tier", help="Strategic pursuit priority: Tier 1 (≥80), Tier 2 (70–79), Tier 3 (60–69), Barrier"),
+                    "Fit Score": st.column_config.TextColumn("Fit Score (0–100)"),
+                    "ATS Readiness": st.column_config.TextColumn("ATS Readiness"),
+                }
+            )
+
+            with st.expander("🎯 Quick Assign / Reassign Job Tier Level", expanded=False):
+                st.caption("Manually adjust or assign the Pursuit Tier for any job:")
+                tier_edit_col1, tier_edit_col2, tier_edit_col3 = st.columns([2.5, 2, 1.2])
+                with tier_edit_col1:
+                    job_map = {f"ID {j.id}: {j.company.strip()} — {j.title.strip()}": j.id for j in jobs}
+                    sel_job_key = st.selectbox("Select Job to Assign Tier", list(job_map.keys()), key="dash_sel_job_tier")
+                    sel_job_id = job_map[sel_job_key]
+                    current_fit = repo.get_fit_for_job(sel_job_id)
+                    curr_tier = current_fit.get("tier", "tier_3") if current_fit else "tier_3"
+                with tier_edit_col2:
+                    tier_options = ["tier_1", "tier_2", "tier_3", "barrier", "do_not_pursue"]
+                    tier_labels = ["🟢 Tier 1 (Strong Pursue ≥80)", "🟡 Tier 2 (Pursue 70–79)", "🟠 Tier 3 (Selective Pursue 60–69)", "⚫ Barrier (Gate Obstacle)", "🔴 Do Not Pursue (<60)"]
+                    curr_idx = tier_options.index(curr_tier) if curr_tier in tier_options else 2
+                    chosen_tier_label = st.selectbox("Assign New Tier Level", tier_labels, index=curr_idx, key="dash_sel_tier_choice")
+                    chosen_tier = tier_options[tier_labels.index(chosen_tier_label)]
+                with tier_edit_col3:
+                    st.write("")
+                    st.write("")
+                    if st.button("💾 Save Tier", key="btn_dash_save_tier", type="primary", use_container_width=True):
+                        repo.update_job_tier(sel_job_id, chosen_tier)
+                        st.success(f"✅ Assigned {chosen_tier_label.split(' ')[0]} {chosen_tier_label.split(' ')[1]} to Job ID {sel_job_id}!")
+                        st.rerun()
+
+
+# =============================================================================
+# Screen 5: Master Resume
+# =============================================================================
+elif screen == "📄 Master Resume":
+    st.title("📄 Master Resume")
+    st.caption(
+        "Manage your canonical Master Resume. The ATS engine and Evidence Mapper evaluate all job descriptions against this version."
+    )
+
+    current_resume = load_master_resume()
+    has_resume = bool(current_resume.strip())
+    words = len(current_resume.split()) if has_resume else 0
+    chars = len(current_resume) if has_resume else 0
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Word Count", f"{words:,}")
+    m2.metric("Character Count", f"{chars:,}")
+    m3.metric("Est. Pages", f"~{max(1, round(words / 450, 1))}" if has_resume else "0")
+    m4.metric("Status", "Active" if has_resume else "Clean / No Resume")
+
+    st.divider()
+
+    tab_edit, tab_preview, tab_profile = st.tabs(
+        ["✏️ Edit & Update Master Resume", "👁️ Formatted Preview", "🎯 Candidate Profile & Rules"]
+    )
+
+    with tab_edit:
+        st.markdown("#### Upload or Paste Your Master Resume")
+        st.caption("Upload your full resume (.docx, .pdf, .txt, .md) or paste directly below. All columns, text boxes, and tables will be extracted.")
+
+        if st.session_state.pop("resume_just_saved", False):
+            st.success("✅ Master Resume saved! All future job analyses and ATS evaluations will use this version.")
+        if st.session_state.pop("resume_just_cleared", False):
+            st.info("🧹 Master Resume cleared. The editor is now clean and blank.")
+
+        editor_version = st.session_state.get("resume_editor_version", 0)
+
+        uploaded_file = st.file_uploader(
+            "Upload Master Resume (.docx, .pdf, .txt, .md)",
+            type=["docx", "pdf", "txt", "md"],
+            key="master_resume_uploader",
+            help="Uploading a Word, PDF, or text file will automatically extract its full text into the editor below and save it as your master resume.",
+        )
+        if uploaded_file is not None:
+            file_sig = f"{uploaded_file.name}_{uploaded_file.size}"
+            if st.session_state.get("last_uploaded_sig") != file_sig:
+                st.session_state["last_uploaded_sig"] = file_sig
+                try:
+                    file_bytes = uploaded_file.read()
+                    uploaded_text = document_handler.extract_text(file_bytes, uploaded_file.name)
+                    if uploaded_text.strip():
+                        save_master_resume(uploaded_text)
+                        st.session_state["resume_editor_version"] = editor_version + 1
+                        st.session_state["resume_just_saved"] = True
+                        st.rerun()
+                    else:
+                        st.warning(f"Could not extract readable text from '{uploaded_file.name}'.")
+                except Exception as e:
+                    st.error(f"Error parsing uploaded file: {e}")
+
+        edited_resume = st.text_area(
+            "Master Resume Text",
+            value=current_resume,
+            height=540,
+            key=f"master_resume_editor_v{editor_version}",
+            placeholder="No resume loaded. Paste your resume here, or drag and drop a Word (.docx) / PDF (.pdf) file above to get started...",
+        )
+
+        col_save, col_clear = st.columns([3, 1])
+        with col_save:
+            if st.button("💾 Save Master Resume", type="primary", use_container_width=True):
+                if edited_resume.strip():
+                    save_master_resume(edited_resume)
+                    st.session_state["resume_editor_version"] = editor_version + 1
+                    st.session_state["resume_just_saved"] = True
+                    st.rerun()
+                else:
+                    st.error("Resume text cannot be empty.")
+        with col_clear:
+            if st.button("🧹 Clear Resume", use_container_width=True, help="Wipe the master resume and clean the screen"):
+                clear_master_resume()
+                st.session_state["resume_editor_version"] = editor_version + 1
+                st.session_state["resume_just_cleared"] = True
+                st.session_state.pop("last_uploaded_sig", None)
+                st.rerun()
+
+    with tab_preview:
+        if has_resume:
+            st.markdown("#### Formatted Resume Preview")
+            pcol1, pcol2, pcol3 = st.columns(3)
+            with pcol1:
+                st.download_button(
+                    "📄 Download Word (.docx)",
+                    data=document_handler.create_docx(current_resume, "Master Resume"),
+                    file_name="Elena_Shchetinina_Master_Resume.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    use_container_width=True,
+                )
+            with pcol2:
+                st.download_button(
+                    "📑 Download PDF (.pdf)",
+                    data=document_handler.create_pdf(current_resume, "Master Resume"),
+                    file_name="Elena_Shchetinina_Master_Resume.pdf",
+                    mime="application/pdf",
+                    use_container_width=True,
+                )
+            with pcol3:
+                st.download_button(
+                    "📝 Download Text (.txt)",
+                    data=current_resume,
+                    file_name="Elena_Shchetinina_Master_Resume.txt",
+                    mime="text/plain",
+                    use_container_width=True,
+                )
+            st.divider()
+            st.markdown(current_resume)
+        else:
+            st.info("ℹ️ No Master Resume is currently loaded. Upload a Word (.docx), PDF (.pdf), or paste your resume in the Edit tab above to see its formatted preview.")
+
+    with tab_profile:
+        st.markdown("#### Candidate Profile & Targeting Rules")
+        st.caption("Rules defined in `data/candidate_profile.json` that guide the AI agent.")
+        try:
+            profile_path = Path(__file__).resolve().parent.parent.parent / "data" / "candidate_profile.json"
+            if profile_path.exists():
+                prof = json.loads(profile_path.read_text(encoding="utf-8"))
+                col_p1, col_p2 = st.columns(2)
+                with col_p1:
+                    st.markdown(f"**Candidate:** {prof.get('name', 'Elena Shchetinina')}")
+                    st.markdown(f"**Location:** {prof.get('location', '')}")
+                    st.markdown(f"**Headline:** {prof.get('headline', '')}")
+                    st.markdown("**Target Role Families:**")
+                    for rf in prof.get("target_role_families", []):
+                        st.markdown(f"- {rf}")
+                with col_p2:
+                    st.markdown("**Hard Constraints & Guardrails:**")
+                    for c in prof.get("constraints", []):
+                        st.markdown(f"- ⛔ {c}")
+                    st.markdown("**Selective / Avoid:**")
+                    for a in prof.get("avoid_or_selective", []):
+                        st.markdown(f"- ⚠️ {a}")
+        except Exception as e:
+            st.error(f"Could not load candidate profile: {e}")

@@ -1,0 +1,7 @@
+{
+  "name": "Candidate Name",
+  "target_role_families": ["Technical Program Management", "Technology Portfolio Management", "AI Program/Operations"],
+  "location_preferences": ["Canada"],
+  "canada_only": false,
+  "notes": "Replace with your approved canonical candidate profile. Do not place secrets here."
+}

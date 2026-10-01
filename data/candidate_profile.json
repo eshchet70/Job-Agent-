@@ -1,0 +1,63 @@
+{
+  "candidate_id": "elena_shchetinina",
+  "name": "Elena Shchetinina",
+  "email": "evschetinina@gmail.com",
+  "location": "Toronto, Ontario, Canada",
+  "headline": "Senior Technical Program / Portfolio Management Leader",
+  "summary": "Senior technology program and portfolio leader with 20+ years across telecom, enterprise technology, e-commerce and public sector. Experience leading complex cross-functional programs, portfolio governance, AI/data initiatives, cloud/platform modernization, operating rhythms, vendor governance and executive stakeholder alignment.",
+  "education": [
+    "MBA, Rotman School of Management, University of Toronto",
+    "B.S., Computer Information Systems, University of Northern Colorado"
+  ],
+  "certifications": [
+    "SAFe Lean Portfolio Management",
+    "SAFe Advanced Scrum Master"
+  ],
+  "core_capabilities": [
+    "technical program management",
+    "portfolio management",
+    "program governance",
+    "roadmap planning",
+    "dependency management",
+    "risk management",
+    "capacity and resource planning",
+    "executive stakeholder management",
+    "cross-functional delivery",
+    "AI and data initiatives",
+    "cloud and platform modernization",
+    "ServiceNow",
+    "Agile and SAFe",
+    "vendor governance",
+    "financial and TCO analysis",
+    "process re-engineering"
+  ],
+  "target_role_families": [
+    "Senior/Lead/Principal Technical Program Manager",
+    "Technology Portfolio Manager / Director Portfolio Management",
+    "AI Program / Portfolio / Transformation Manager",
+    "Director AI Engineering Portfolio & Operations",
+    "Data / Platform Program Manager",
+    "Engineering / Product Operations Leader",
+    "Technology Transformation Program Leader"
+  ],
+  "avoid_or_selective": [
+    "pure hands-on software engineering",
+    "pure ML research/ML engineering",
+    "enterprise architect roles requiring architecture ownership",
+    "pure product manager roles without program/portfolio scope"
+  ],
+  "geography": {
+    "primary": [
+      "Toronto",
+      "Canada"
+    ],
+    "secondary": [
+      "United States when work authorization/sponsorship is viable"
+    ]
+  },
+  "constraints": [
+    "Do not target Amazon employment",
+    "Exclude CGI from target-company recommendations",
+    "Do not represent candidate as an enterprise architect or hands-on ML engineer unless a specific verified evidence item supports the claim"
+  ]
+}

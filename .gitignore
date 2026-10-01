@@ -1,0 +1,60 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Pytest & caching
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local database & runtime state
+data/job_search.db
+data/job_search.db-shm
+data/job_search.db-wal
+*.db
+*.db-shm
+*.db-wal
+
+# Sensitive configuration & credentials
+data/email_config.json
+.env
+.env.local
+*.env
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Streamlit runtime data
+.streamlit/secrets.toml

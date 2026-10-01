@@ -1,0 +1,229 @@
+[
+  {
+    "id": "BELL-TCO-01",
+    "employer": "Bell Canada",
+    "role": "Senior Program Manager / Agile Program Manager",
+    "initiative": "Application Total Cost of Ownership discovery",
+    "period": "2024-2026",
+    "capabilities": [
+      "portfolio governance",
+      "TCO",
+      "financial management",
+      "stakeholder management",
+      "ServiceNow",
+      "data integration",
+      "application portfolio management"
+    ],
+    "evidence": "Led/participated in a KPMG-supported TCO discovery spanning 60+ stakeholder interviews, seven data systems, and a model applied across approximately 400 applications; evaluated interim and long-term operating/data approaches including ServiceNow and enterprise source systems.",
+    "safe_claims": [
+      "Led complex application TCO discovery and stakeholder alignment",
+      "Coordinated work across 60+ interviews and seven enterprise data systems",
+      "Applied TCO model across approximately 400 applications",
+      "Worked with ServiceNow, SAP50, iValua and enterprise application/cost data"
+    ],
+    "unsafe_claims": [
+      "Built ServiceNow platform",
+      "Developed AI models",
+      "Served as enterprise architect"
+    ]
+  },
+  {
+    "id": "BELL-PORTFOLIO-01",
+    "employer": "Bell Canada",
+    "role": "Senior Program Manager / Agile Program Manager",
+    "initiative": "Technology portfolio planning and governance",
+    "period": "2024-2026",
+    "capabilities": [
+      "portfolio management",
+      "governance",
+      "intake",
+      "planning cycles",
+      "roadmap",
+      "stakeholder management",
+      "Agile",
+      "LPM"
+    ],
+    "evidence": "Supported governance/intake and planning across a large stakeholder environment, including long-range planning cycles, Agile delivery structure, prioritization and portfolio-level coordination.",
+    "safe_claims": [
+      "Led program/portfolio governance and planning activities",
+      "Worked across 60+ stakeholders",
+      "Applied Lean Portfolio Management and Agile practices"
+    ],
+    "unsafe_claims": [
+      "Owned Bell enterprise architecture",
+      "Owned company-wide capital allocation"
+    ]
+  },
+  {
+    "id": "BELL-PAYMENTS-01",
+    "employer": "Bell Canada",
+    "role": "Senior Program Manager",
+    "initiative": "Price & Pay mission",
+    "period": "2025-2026",
+    "capabilities": [
+      "technical program management",
+      "payments",
+      "platform modernization",
+      "cross-functional delivery",
+      "dependencies",
+      "senior stakeholders"
+    ],
+    "evidence": "Program leadership around a Price & Pay mission involving six enterprise architects and a new payment stack replacing a large legacy environment.",
+    "safe_claims": [
+      "Led/coordinated complex payment-platform modernization work",
+      "Managed cross-functional technical dependencies and senior stakeholders"
+    ],
+    "unsafe_claims": [
+      "Designed the payment architecture",
+      "Personally engineered the payment stack"
+    ]
+  },
+  {
+    "id": "AMZN-CATALOG-01",
+    "employer": "Amazon",
+    "role": "Senior Program Manager, Hardlines",
+    "initiative": "Catalog schema, ontology and product data programs",
+    "period": "2022-2023",
+    "capabilities": [
+      "technical program management",
+      "e-commerce",
+      "catalog",
+      "ontology",
+      "data quality",
+      "product discovery",
+      "cross-functional delivery"
+    ],
+    "evidence": "Managed concurrent Hardlines catalog/ontology programs spanning data scientists, ontologists and 10+ engineers; programs included Autos data and Hardlines attributes and supported product discovery/catalog quality.",
+    "safe_claims": [
+      "Led cross-functional catalog and ontology programs",
+      "Coordinated data science, ontology and engineering workstreams",
+      "Managed multiple concurrent e-commerce data programs"
+    ],
+    "unsafe_claims": [
+      "Owned Amazon search ranking algorithms",
+      "Developed production ML models"
+    ]
+  },
+  {
+    "id": "AMZN-SUPPRESSION-01",
+    "employer": "Amazon",
+    "role": "Senior Program Manager, Hardlines",
+    "initiative": "Seller policy compliance and listing suppression/reinstatement",
+    "period": "2022-2023",
+    "capabilities": [
+      "policy compliance",
+      "seller experience",
+      "catalog quality",
+      "data validation",
+      "process design",
+      "program management"
+    ],
+    "evidence": "Worked on suppression/reinstatement and requirement-tag processes for incomplete or non-compliant listings, including completeness thresholds and pathways to resolve suppression; program reduced non-compliant listings by more than 20%.",
+    "safe_claims": [
+      "Led seller/catalog compliance program work",
+      "Worked on listing suppression and reinstatement processes",
+      "Program reduced non-compliant listings by 20%+"
+    ],
+    "unsafe_claims": [
+      "Owned all Amazon prohibited-products policy",
+      "Built the suppression service"
+    ]
+  },
+  {
+    "id": "AMZN-VALIDATION-01",
+    "employer": "Amazon",
+    "role": "Senior Program Manager, Hardlines",
+    "initiative": "Catalog data validation",
+    "period": "2022-2023",
+    "capabilities": [
+      "data validation",
+      "data quality",
+      "catalog",
+      "program management",
+      "cross-team coordination"
+    ],
+    "evidence": "Worked with catalog data validation teams on validation/verification processes and listing defects that could originate in catalog data.",
+    "safe_claims": [
+      "Led/coordinated catalog data-quality and validation work",
+      "Worked across upstream catalog defects and downstream listing impact"
+    ],
+    "unsafe_claims": [
+      "Implemented validation algorithms personally"
+    ]
+  },
+  {
+    "id": "IBM-CLM-01",
+    "employer": "IBM",
+    "role": "Senior Consultant / Technical Program Manager",
+    "initiative": "Contract lifecycle management integration",
+    "period": "2015-2022",
+    "capabilities": [
+      "technical program management",
+      "contract lifecycle management",
+      "procurement",
+      "Ariba",
+      "workflow automation",
+      "integration",
+      "compliance",
+      "finance"
+    ],
+    "evidence": "Led contract workflow/integration work involving procurement and financial processes; integration with Ariba/IBM Procurement reduced review time by approximately 30% and improved accuracy by approximately 15%.",
+    "safe_claims": [
+      "Led CLM/procurement integration program work",
+      "Reduced review time by ~30% and improved accuracy by ~15%",
+      "Worked with business, legal, finance, audit, compliance and vendor stakeholders"
+    ],
+    "unsafe_claims": [
+      "Authored all legal contract policy",
+      "Was the Ariba product architect"
+    ]
+  },
+  {
+    "id": "IBM-WEBMASTER-01",
+    "employer": "IBM",
+    "role": "Senior Consultant / Technical Program Manager",
+    "initiative": "Webmaster program and automation tools",
+    "period": "2015-2022",
+    "capabilities": [
+      "program management",
+      "product ownership",
+      "automation",
+      "enterprise platform",
+      "vendor governance",
+      "cloud"
+    ],
+    "evidence": "Program leadership on a large enterprise webmaster program and product ownership for automation tooling with a small delivery team.",
+    "safe_claims": [
+      "Led enterprise-scale program delivery",
+      "Owned automation-tool product/program work",
+      "Managed cross-functional stakeholders and delivery"
+    ],
+    "unsafe_claims": [
+      "Personally coded all automation tooling"
+    ]
+  },
+  {
+    "id": "IBM-PUBLICSECTOR-01",
+    "employer": "IBM",
+    "role": "Consultant / Technical Program Manager",
+    "initiative": "Public-sector health and human services systems",
+    "period": "2009-2018",
+    "capabilities": [
+      "public sector",
+      "health and human services",
+      "business analysis",
+      "testing",
+      "enterprise implementation",
+      "stakeholder management"
+    ],
+    "evidence": "Business analysis/testing and delivery leadership across multiple U.S. and Canadian public-sector health/human-services implementations using enterprise case-management platforms.",
+    "safe_claims": [
+      "Led BA/testing and implementation work in public-sector health/human-services programs",
+      "Worked across complex government stakeholder environments"
+    ],
+    "unsafe_claims": [
+      "Practiced clinical medicine",
+      "Owned healthcare policy"
+    ]
+  }
+]
