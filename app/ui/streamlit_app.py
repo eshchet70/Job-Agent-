@@ -38,6 +38,7 @@ from app.models import (
 )
 import app.orchestrator as orch
 from app.services import resume_tailor
+from app.services import tracker_service
 
 process_job = orch.process_job
 load_evidence = orch.load_evidence
@@ -1925,218 +1926,481 @@ elif screen == "👥 People & Outreach":
 # Screen 3: Application Record
 # =============================================================================
 elif screen == "📋 Application Record":
-    st.title("📋 Application Records")
-    st.caption("All analyzed jobs. System of record: SQLite.")
+    st.title("📋 Master Application Tracker & Record")
+    st.caption("Live synchronization with `Final_Job_Application_Tracker-5.xlsx` (Applications sheet) & SQLite.")
 
-    jobs = repo.list_jobs(limit=200)
-    if not jobs:
-        st.info("No jobs yet. Analyze a job from the 'Analyze Job' screen.")
+    # -------------------------------------------------------------------------
+    # Cached Data Loader
+    # -------------------------------------------------------------------------
+    @st.cache_data(ttl=30)
+    def _get_cached_applications_df():
+        return tracker_service.load_applications_data()
+
+    tracker_file = tracker_service.get_tracker_file_path()
+    df_raw = _get_cached_applications_df()
+
+    if df_raw.empty:
+        st.warning(f"No application records found in `{tracker_file.name}`. Please verify the file path.")
         st.stop()
 
-    tier_display_short = {
-        "tier_1": "🟢 Tier 1",
-        "tier_2": "🟡 Tier 2",
-        "tier_3": "🟠 Tier 3",
-        "barrier": "⚫ Barrier",
-        "do_not_pursue": "🔴 Do Not Pursue",
-    }
+    # -------------------------------------------------------------------------
+    # Header Action Buttons
+    # -------------------------------------------------------------------------
+    head_col1, head_col2, head_col3 = st.columns([1.5, 1.2, 1.3])
+    with head_col1:
+        if tracker_file.exists():
+            st.download_button(
+                "📥 Download Tracker (.xlsx)",
+                data=tracker_file.read_bytes(),
+                file_name=tracker_file.name,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                help="Download the latest Excel workbook with all 19 application tracking columns.",
+                use_container_width=True,
+            )
+    with head_col2:
+        if st.button("🔄 Refresh Tracker", help="Reload latest application data directly from disk", use_container_width=True):
+            _get_cached_applications_df.clear()
+            st.rerun()
+    with head_col3:
+        show_add_app = st.button("➕ Log New Application", help="Record a newly submitted application to the tracker", use_container_width=True)
+        if show_add_app:
+            st.session_state["show_add_app_form"] = not st.session_state.get("show_add_app_form", False)
 
-    tier_key_map = {
-        "🟢 Tier 1": "tier_1",
-        "🟡 Tier 2": "tier_2",
-        "🟠 Tier 3": "tier_3",
-        "⚫ Barrier": "barrier",
-        "🔴 Do Not Pursue": "do_not_pursue",
-    }
+    # -------------------------------------------------------------------------
+    # Form: Log New Application Submitted Today
+    # -------------------------------------------------------------------------
+    if st.session_state.get("show_add_app_form", False):
+        with st.container(border=True):
+            st.markdown("##### ➕ Log New Application Submitted Today")
+            st.caption("Add an application row directly into `Final_Job_Application_Tracker-5.xlsx` and SQLite.")
+            with st.form("log_new_app_form"):
+                n_c1, n_c2, n_c3 = st.columns(3)
+                with n_c1:
+                    new_app_date = st.date_input("Date Applied", value=datetime.now().date())
+                    new_company = st.text_input("Company *", placeholder="e.g. Google, Anthropic, Cohere")
+                    new_title = st.text_input("Role Title *", placeholder="e.g. Technical Program Manager")
+                with n_c2:
+                    new_level = st.selectbox("Seniority Level", ["Senior", "Staff", "Lead", "Director", "Principal", "Manager", "Mid-Level", "Other"])
+                    new_country = st.selectbox("Country", ["US", "Canada", "Remote", "UK", "Other"])
+                    new_city = st.text_input("City / Remote", placeholder="e.g. Toronto, ON or Remote")
+                with n_c3:
+                    new_channel = st.selectbox("Channel", ["Cold Portal", "LinkedIn", "LinkedIn Easy Apply", "Recruiter", "Agency", "Indeed", "Dice", "Referral", "Company Site", "Other"])
+                    new_status = st.selectbox("Status", ["Applied", "Screening", "Interviewing", "Draft", "Offer", "Rejected"], index=0)
+                    new_fit_score = st.number_input("Fit Score (%)", min_value=0, max_value=100, value=75)
 
-    f_col1, f_col2 = st.columns([2, 1])
-    with f_col1:
-        search = st.text_input("🔍 Filter by company or title", "")
-    with f_col2:
-        tier_filter = st.selectbox(
-            "Filter by Pursuit Tier",
-            ["All Tiers", "🟢 Tier 1", "🟡 Tier 2", "🟠 Tier 3", "⚫ Barrier", "🔴 Do Not Pursue"],
+                n_sub1, n_sub2 = st.columns(2)
+                with n_sub1:
+                    new_sponsorship = st.selectbox("Sponsorship Question?", ["Yes", "No", "Not Asked"], index=0)
+                    new_contact = st.text_input("Referral / Contact Name", placeholder="e.g. Recruiter Name, Referral contact")
+                with n_sub2:
+                    new_next_act = st.text_input("Next Action", value="Follow up with recruiter and hiring team within 3-5 business days")
+
+                new_app_notes = st.text_area("Notes", placeholder="Role context, salary range, mismatch drivers, team details...")
+                submit_new_app = st.form_submit_button("🚀 Submit & Append to Master Tracker", type="primary", use_container_width=True)
+
+                if submit_new_app:
+                    if not new_company.strip() or not new_title.strip():
+                        st.error("Company and Role Title are required.")
+                    else:
+                        new_record = {
+                            "Date Applied": new_app_date,
+                            "Company": new_company.strip(),
+                            "Role Title": new_title.strip(),
+                            "Level": new_level,
+                            "Country": new_country,
+                            "City / Remote": new_city.strip() or "Remote",
+                            "Fit Score (%)": int(new_fit_score),
+                            "Channel": new_channel,
+                            "Referral / Contact Name": new_contact.strip() if new_contact else None,
+                            "Sponsorship Question?": new_sponsorship,
+                            "Status": new_status,
+                            "Response Date": None,
+                            "Days to Response": None,
+                            "Next Action": new_next_act.strip() if new_next_act else None,
+                            "Next Action Date": None,
+                            "Notes": new_app_notes.strip() if new_app_notes else "",
+                            "Interview/Screen Date(s)": None,
+                            "Gap Category": None,
+                            "Key Requirements": None,
+                        }
+                        try:
+                            tracker_service.append_application_record(new_record)
+                            # Also ensure a corresponding record in SQLite for pipeline continuity
+                            try:
+                                from app.models import JobRecord, WorkModel
+                                job_rec = JobRecord(
+                                    company=new_company.strip(),
+                                    title=new_title.strip(),
+                                    location=new_city.strip() or "Remote",
+                                    country=new_country,
+                                    work_model=WorkModel.REMOTE if "remote" in (new_city + new_country).lower() else WorkModel.HYBRID,
+                                    jd_text=new_app_notes.strip() or f"Role: {new_title} at {new_company}",
+                                    status="applied" if new_status.lower() == "applied" else "open",
+                                )
+                                created_id = repo.create_job(job_rec)
+                                repo.update_application_status(
+                                    job_id=created_id,
+                                    status="applied" if new_status.lower() == "applied" else "draft",
+                                    applied_at=datetime.combine(new_app_date, datetime.min.time()),
+                                    channel=new_channel.lower().replace(" ", "_"),
+                                    notes=new_app_notes.strip(),
+                                    next_action=new_next_act.strip(),
+                                )
+                            except Exception as db_err:
+                                logger.debug(f"Could not sync new app to SQLite: {db_err}")
+
+                            _get_cached_applications_df.clear()
+                            st.session_state["show_add_app_form"] = False
+                            st.success(f"🎉 Successfully logged application for **{new_company}** on **{new_app_date}**!")
+                            st.rerun()
+                        except Exception as save_err:
+                            st.error(f"Failed to append record to Excel: {save_err}")
+
+    # -------------------------------------------------------------------------
+    # Master KPI Executive Metrics Bar
+    # -------------------------------------------------------------------------
+    kpis = tracker_service.get_tracker_kpis(df_raw)
+
+    m1, m2, m3, m4, m5 = st.columns(5)
+    m1.metric("📋 Total Tracked", kpis["total"], help="Total applications across all historical and active pipelines")
+    m2.metric(
+        "📬 Active Pipeline",
+        kpis["active_pipeline"],
+        delta=f"{kpis['applied']} Applied · {kpis['screening'] + kpis['interviewing']} Screens",
+        help="Applications actively in progress (Applied, Screening, Interviewing)",
+    )
+    m3.metric(
+        "⚡ Submitted Last 30 Days",
+        kpis["last_30_days"],
+        delta=f"{kpis['last_7_days']} in last 7 days",
+        help="Applications submitted in the most recent 30-day period",
+    )
+    m4.metric(
+        "⏱️ Avg Days to Response",
+        f"{kpis['avg_response_days']} d" if kpis["avg_response_days"] > 0 else "—",
+        delta=f"Median {kpis['median_response_days']} d",
+        help="Average calendar days between Date Applied and recruiter Response Date",
+    )
+    m5.metric(
+        "🔴 Final Outcomes",
+        f"{kpis['rejected']} Rej",
+        delta=f"{kpis['ghosted']} Ghosted · {kpis['closed']} Closed",
+        delta_color="inverse",
+        help="Applications concluded as Rejected, Ghosted (30d+), or Closed",
+    )
+
+    st.divider()
+
+    # -------------------------------------------------------------------------
+    # Spreadsheet Toolbar: Multi-Faceted Filters & Search
+    # -------------------------------------------------------------------------
+    st.markdown("##### 🔍 Application Search & Filters")
+    f_c1, f_c2, f_c3, f_c4, f_c5 = st.columns([2.0, 1.1, 1.2, 1.1, 1.2])
+
+    with f_c1:
+        search_kw = st.text_input("Search Applications", placeholder="Search company, title, location, notes, channel...", label_visibility="collapsed")
+    with f_c2:
+        status_opts = ["All Statuses", "🟢 Applied", "🟣 Screening", "🎯 Interviewing", "🔴 Rejected", "⚪ Ghosted (30d+)", "⚫ Closed"]
+        sel_status = st.selectbox("Status Filter", status_opts, label_visibility="collapsed")
+    with f_c3:
+        timeline_opts = ["All Time", "⚡ Last 7 Days", "📅 Last 30 Days", "🗓️ Last 90 Days", "2026 Submissions", "2025 Submissions"]
+        sel_timeline = st.selectbox("Submission Timeline", timeline_opts, label_visibility="collapsed")
+    with f_c4:
+        channel_opts = ["All Channels", "Cold Portal", "LinkedIn", "Recruiter", "Agency", "Indeed", "Dice", "Referral", "Other"]
+        sel_channel = st.selectbox("Channel Filter", channel_opts, label_visibility="collapsed")
+    with f_c5:
+        sort_opts = [
+            "📅 Date Applied (Newest First)",
+            "📅 Date Applied (Oldest First)",
+            "🏢 Company (A-Z)",
+            "📊 Fit Score (High-Low)",
+            "⏱️ Days to Response",
+        ]
+        sel_sort = st.selectbox("Sort Order", sort_opts, label_visibility="collapsed")
+
+    # -------------------------------------------------------------------------
+    # Apply Filtering to DataFrame
+    # -------------------------------------------------------------------------
+    filtered_df = df_raw.copy()
+
+    # Text search
+    if search_kw.strip():
+        q = search_kw.strip().lower()
+        match_mask = (
+            filtered_df["Company"].astype(str).str.lower().str.contains(q)
+            | filtered_df["Role Title"].astype(str).str.lower().str.contains(q)
+            | filtered_df["City / Remote"].astype(str).str.lower().str.contains(q)
+            | filtered_df["Country"].astype(str).str.lower().str.contains(q)
+            | filtered_df["Notes"].astype(str).str.lower().str.contains(q)
+            | filtered_df["Channel"].astype(str).str.lower().str.contains(q)
+            | filtered_df["Next Action"].astype(str).str.lower().str.contains(q)
         )
+        filtered_df = filtered_df[match_mask]
 
-    filtered = []
-    for j in jobs:
-        fit_i = repo.get_fit_for_job(j.id)
-        j_tier = fit_i.get("tier") if fit_i else None
-        if tier_filter != "All Tiers" and j_tier != tier_key_map.get(tier_filter):
-            continue
-        if search and (search.lower() not in j.company.lower() and search.lower() not in j.title.lower()):
-            continue
-        filtered.append(j)
+    # Status filter
+    if sel_status != "All Statuses":
+        clean_stat = sel_status.split(" ", 1)[-1].strip().lower()
+        if "applied" in clean_stat:
+            filtered_df = filtered_df[filtered_df["Status"].astype(str).str.lower() == "applied"]
+        elif "screening" in clean_stat:
+            filtered_df = filtered_df[filtered_df["Status"].astype(str).str.lower() == "screening"]
+        elif "interview" in clean_stat:
+            filtered_df = filtered_df[filtered_df["Status"].astype(str).str.lower().str.contains("interview")]
+        elif "reject" in clean_stat:
+            filtered_df = filtered_df[filtered_df["Status"].astype(str).str.lower().str.contains("reject")]
+        elif "ghost" in clean_stat:
+            filtered_df = filtered_df[filtered_df["Status"].astype(str).str.lower().str.contains("ghost")]
+        elif "close" in clean_stat:
+            filtered_df = filtered_df[filtered_df["Status"].astype(str).str.lower().str.contains("close")]
 
-    st.caption(f"Showing {len(filtered)} of {len(jobs)} jobs")
+    # Timeline filter
+    if sel_timeline != "All Time":
+        max_dt = filtered_df["Date Applied Parsed"].dropna().max()
+        ref_dt = max_dt if max_dt is not None else pd.Timestamp.now()
+        if "7 Days" in sel_timeline:
+            filtered_df = filtered_df[filtered_df["Date Applied Parsed"] >= (ref_dt - pd.Timedelta(days=7))]
+        elif "30 Days" in sel_timeline:
+            filtered_df = filtered_df[filtered_df["Date Applied Parsed"] >= (ref_dt - pd.Timedelta(days=30))]
+        elif "90 Days" in sel_timeline:
+            filtered_df = filtered_df[filtered_df["Date Applied Parsed"] >= (ref_dt - pd.Timedelta(days=90))]
+        elif "2026" in sel_timeline:
+            filtered_df = filtered_df[filtered_df["Date Applied Parsed"].dt.year == 2026]
+        elif "2025" in sel_timeline:
+            filtered_df = filtered_df[filtered_df["Date Applied Parsed"].dt.year == 2025]
 
-    for job in filtered:
-        app_rec = repo.get_application_for_job(job.id)
-        fit_info = repo.get_fit_for_job(job.id)
-        ats_info = repo.get_ats_for_job(job.id)
+    # Channel filter
+    if sel_channel != "All Channels":
+        c_filter = sel_channel.lower()
+        filtered_df = filtered_df[filtered_df["Channel"].astype(str).str.lower().str.contains(c_filter)]
 
-        tier_tag = tier_display_short.get(fit_info.get("tier"), "⚪ Unassigned") if fit_info else "⚪ Unassigned"
+    # Sorting
+    if "Date Applied (Newest First)" in sel_sort:
+        filtered_df = filtered_df.sort_values(by="Date Applied Parsed", ascending=False, na_position="last")
+    elif "Date Applied (Oldest First)" in sel_sort:
+        filtered_df = filtered_df.sort_values(by="Date Applied Parsed", ascending=True, na_position="last")
+    elif "Company (A-Z)" in sel_sort:
+        filtered_df = filtered_df.sort_values(by="Company", ascending=True)
+    elif "Fit Score" in sel_sort:
+        filtered_df = filtered_df.sort_values(by="Fit Score (%)", ascending=False, na_position="last")
+    elif "Days to Response" in sel_sort:
+        filtered_df = filtered_df.sort_values(by="Days to Response", ascending=True, na_position="last")
 
-        status_tag = "Draft"
-        if app_rec and app_rec.status == "applied":
-            applied_str = app_rec.applied_at.strftime('%b %d, %Y') if app_rec.applied_at else "Recently"
-            status_tag = f"🟢 Applied ({applied_str})"
-        elif app_rec and app_rec.status != "draft":
-            status_tag = f"🔵 {app_rec.status.title()}"
+    filtered_df = filtered_df.reset_index(drop=True)
 
-        with st.expander(
-            f"**{job.company}** — {job.title} · {tier_tag} · {status_tag} · {job.location or '?'}",
-            expanded=(job.id in [3, 4])
-        ):
-            c1, c2, c3, c4, c5 = st.columns(5)
-            c1.metric("Pursuit Tier", tier_tag)
-            c2.metric("Fit Score", f"{fit_info['weighted_score']:.1f}/100" if (fit_info and fit_info.get('weighted_score')) else "—")
-            c3.metric("ATS Readiness", f"{ats_info['readiness']:.0f}%" if (ats_info and ats_info.get('readiness')) else "—")
-            c4.metric("Application Status", app_rec.status.upper() if app_rec else "DRAFT")
-            c5.metric("Work Model", job.work_model or "—")
+    st.caption(f"Showing **{len(filtered_df)}** of **{len(df_raw)}** applications · Structure aligned with `Final-Excel-Spreadsheet Tracker -5`")
 
-            if app_rec and app_rec.status == "applied":
-                applied_date_fmt = app_rec.applied_at.strftime('%B %d, %Y') if app_rec.applied_at else "Recently"
-                channel_lbl = app_rec.channel.replace('_', ' ').title() if app_rec.channel else "Company Site"
-                rel_time = f" ({format_relative_time(app_rec.applied_at)})" if app_rec.applied_at else ""
-                st.success(
-                    f"📬 **Application Status: Applied on {channel_lbl} on {applied_date_fmt}{rel_time}**\n\n"
-                    f"• **Source:** {app_rec.status_source.title() if app_rec.status_source else 'LinkedIn'} application status confirmed.\n"
-                    f"• **Next Recommended Action:** {app_rec.next_action or 'Reach out to recruiter & hiring team for follow up.'}\n"
-                    f"• **Notes:** {app_rec.notes or 'None'}"
-                )
-            elif not app_rec or app_rec.status == "draft":
-                st.info(
-                    "📝 **Status: Draft (Ready to Apply)** · Not submitted yet. "
-                    "Click **Apply via LinkedIn** or **Company Careers** below, then click **Mark as Applied Today**."
-                )
+    # -------------------------------------------------------------------------
+    # Spreadsheet Table View (st.dataframe)
+    # -------------------------------------------------------------------------
+    # Prepare display columns exactly mirroring the Excel spreadsheet
+    display_df = pd.DataFrame()
+    display_df["Date Applied"] = filtered_df["Date Applied Clean"]
+    display_df["Company"] = filtered_df["Company"]
+    display_df["Role Title"] = filtered_df["Role Title"]
+    display_df["Level"] = filtered_df["Level"]
+    display_df["Location"] = filtered_df.apply(
+        lambda r: f"{r['City / Remote']}, {r['Country']}" if (r["Country"] and r["Country"] not in str(r["City / Remote"])) else str(r["City / Remote"]),
+        axis=1,
+    )
+    display_df["Status"] = filtered_df["Status"]
+    display_df["Channel"] = filtered_df["Channel"]
+    display_df["Fit Score (%)"] = filtered_df["Fit Score (%)"].fillna(0).astype(int)
+    display_df["Days to Resp"] = filtered_df["Days to Response"]
+    display_df["Next Action"] = filtered_df["Next Action"]
 
-            import urllib.parse
-            j_comp = (job.company or "").strip()
-            j_title = (job.title or "").strip()
-            j_search_url = f"https://www.google.com/search?q={urllib.parse.quote_plus(f'{j_comp} {j_title} careers apply')}"
+    col_configs = {
+        "Date Applied": st.column_config.DateColumn("📅 Date Applied", format="YYYY-MM-DD", width="small", help="Date the application was submitted"),
+        "Company": st.column_config.TextColumn("🏢 Company", width="medium"),
+        "Role Title": st.column_config.TextColumn("💼 Role Title", width="large"),
+        "Level": st.column_config.TextColumn("🎖️ Level", width="small"),
+        "Location": st.column_config.TextColumn("📍 Location / Remote", width="medium"),
+        "Status": st.column_config.TextColumn("🎯 Status", width="small"),
+        "Channel": st.column_config.TextColumn("📡 Channel", width="medium"),
+        "Fit Score (%)": st.column_config.ProgressColumn("📊 Fit Score", min_value=0, max_value=100, format="%d%%", width="small"),
+        "Days to Resp": st.column_config.NumberColumn("⏱️ Days Resp", format="%d", width="small", help="Days from application to initial response"),
+        "Next Action": st.column_config.TextColumn("⚡ Next Action", width="medium"),
+    }
 
-            # Determine best LinkedIn and Company Portal URLs
-            j_src = (job.source_url or "").strip()
-            j_off = (job.official_url or "").strip()
+    if filtered_df.empty:
+        st.info("No applications match the selected filters. Clear or adjust your filters above.")
+        st.stop()
 
-            li_apply_url = None
-            if j_src and "linkedin.com" in j_src.lower():
-                li_apply_url = j_src
-            elif j_off and "linkedin.com" in j_off.lower():
-                li_apply_url = j_off
+    table_selection = st.dataframe(
+        display_df,
+        column_config=col_configs,
+        use_container_width=True,
+        height=450,
+        selection_mode="single-row",
+        on_select="rerun",
+        key="master_application_tracker_dataframe",
+    )
 
-            portal_url = None
-            if j_off and "linkedin.com" not in j_off.lower():
-                portal_url = j_off
+    st.caption("💡 **Click any application row above** to inspect full details, salary/mismatch notes, interview dates, or update application status.")
 
-            st.markdown("##### 🚀 Application Launchpad")
-            col_apply, col_portal, col_mark = st.columns([1.5, 1.2, 1.3])
-            with col_apply:
-                if li_apply_url:
-                    st.link_button("🚀 Apply via LinkedIn Job Post", li_apply_url, type="primary", use_container_width=True)
-                elif portal_url:
-                    st.link_button(f"🌐 Apply on {j_comp} Careers", portal_url, type="primary", use_container_width=True)
-                else:
-                    st.link_button("🌐 Search & Apply Online", j_search_url, type="primary", use_container_width=True)
+    # -------------------------------------------------------------------------
+    # Resolve Selected Application Row
+    # -------------------------------------------------------------------------
+    selected_row_idx = 0
+    if hasattr(table_selection, "selection") and table_selection.selection:
+        raw_rows = table_selection.selection.get("rows", []) if isinstance(table_selection.selection, dict) else (table_selection.selection.rows or [])
+        if raw_rows and raw_rows[0] < len(filtered_df):
+            selected_row_idx = raw_rows[0]
 
-            with col_portal:
-                if portal_url:
-                    st.link_button("🏢 Company Careers Portal", portal_url, use_container_width=True)
-                else:
-                    st.link_button(f"🔍 Search {j_comp} Careers", j_search_url, use_container_width=True)
+    selected_app = filtered_df.iloc[selected_row_idx]
 
-            with col_mark:
-                if app_rec and app_rec.status == "applied":
-                    if st.button("↩️ Revert to Draft", key=f"revert_draft_{job.id}", use_container_width=True):
-                        repo.update_application_status(
-                            job_id=job.id,
-                            status="draft",
-                            notes="Reverted to draft by user",
-                        )
-                        st.info("Reverted application status back to Draft.")
-                        st.rerun()
-                else:
-                    applied_channel_val = "linkedin" if li_apply_url else "company_site"
-                    if st.button("✅ Mark as Applied Today", key=f"quick_apply_{job.id}", type="secondary" if li_apply_url else "primary", use_container_width=True):
-                        from datetime import datetime
-                        repo.update_application_status(
-                            job_id=job.id,
-                            status="applied",
-                            applied_at=datetime.utcnow(),
-                            channel=applied_channel_val,
-                            status_source="user_action",
-                            notes=f"Applied via {applied_channel_val.replace('_', ' ').title()}",
-                            next_action="Follow up with recruiter and hiring team within 3-5 business days",
-                        )
-                        st.success(f"🎉 Marked as Applied via {applied_channel_val.replace('_', ' ').title()} today!")
-                        st.rerun()
+    # -------------------------------------------------------------------------
+    # Application Detail Inspector & Action Center
+    # -------------------------------------------------------------------------
+    st.divider()
 
-            c_jump1, c_jump2 = st.columns(2)
-            with c_jump1:
-                if st.button("📄 View Tailored Resume & Fit Analysis in Analyze Job", key=f"btn_res_jump_{job.id}", use_container_width=True):
-                    st.session_state["load_job_id"] = job.id
+    # Submission date formatting and relative time calculation
+    app_date_val = selected_app["Date Applied Clean"]
+    rel_time_str = ""
+    if app_date_val:
+        from datetime import date
+        diff_d = (date.today() - app_date_val).days
+        if diff_d == 0:
+            rel_time_str = "today"
+        elif diff_d == 1:
+            rel_time_str = "yesterday"
+        elif diff_d < 7:
+            rel_time_str = f"{diff_d} days ago"
+        elif diff_d < 30:
+            rel_time_str = f"{diff_d // 7} weeks ago"
+        elif diff_d < 365:
+            rel_time_str = f"{diff_d // 30} months ago"
+        else:
+            rel_time_str = f"{diff_d // 365} year(s) ago"
+
+    sub_banner_date = f"📅 Submitted on **{app_date_val}**" if app_date_val else "📅 Submission Date: **Unspecified / Prior Tracker**"
+    if rel_time_str:
+        sub_banner_date += f" *({rel_time_str})*"
+
+    # Status Pill style
+    stat_val = str(selected_app["Status"])
+    stat_color = "🟢" if "applied" in stat_val.lower() else ("🟣" if "screen" in stat_val.lower() else ("🎯" if "interview" in stat_val.lower() else ("🔴" if "reject" in stat_val.lower() else "⚪")))
+
+    st.markdown(
+        f"#### {stat_color} **{selected_app['Company']}** — {selected_app['Role Title']}\n"
+        f"{sub_banner_date} · **Channel:** {selected_app['Channel'] or 'Direct'} · **Status:** {stat_val} · **Excel Row #{selected_app['_excel_row']}**"
+    )
+
+    det_tab1, det_tab2, det_tab3 = st.tabs(["📋 Full Record & Timeline", "✏️ Update Status & Notes", "🚀 Action Launchpad"])
+
+    with det_tab1:
+        d_col1, d_col2, d_col3 = st.columns(3)
+        with d_col1:
+            st.markdown("###### 📅 Submission Metadata")
+            st.write(f"**Date Applied:** {selected_app['Date Applied Clean'] or '—'} ({rel_time_str or 'N/A'})")
+            st.write(f"**Channel:** {selected_app['Channel'] or '—'}")
+            st.write(f"**Sponsorship Question?:** {selected_app['Sponsorship Question?'] or 'Not Specified'}")
+            st.write(f"**Referral / Contact:** {selected_app['Referral / Contact Name'] or 'None'}")
+        with d_col2:
+            st.markdown("###### ⏱️ Response & Pipeline Tracking")
+            st.write(f"**Current Status:** {selected_app['Status'] or 'Applied'}")
+            st.write(f"**Response Date:** {selected_app['Response Date Clean'] or 'Awaiting Response'}")
+            resp_days_disp = f"{int(selected_app['Days to Response'])} days" if pd.notnull(selected_app['Days to Response']) else "Pending"
+            st.write(f"**Days to Response:** {resp_days_disp}")
+            st.write(f"**Interview Date(s):** {selected_app['Interview/Screen Date(s)'] or 'None'}")
+        with d_col3:
+            st.markdown("###### 📊 Fit & Next Action")
+            fit_disp = f"{int(selected_app['Fit Score (%)'])}%" if pd.notnull(selected_app['Fit Score (%)']) else "—"
+            st.write(f"**Fit Score:** {fit_disp}")
+            st.write(f"**Level:** {selected_app['Level'] or '—'}")
+            st.write(f"**Location:** {selected_app['City / Remote']} ({selected_app['Country'] or 'US'})")
+            st.write(f"**Next Action:** {selected_app['Next Action'] or 'Follow up with hiring team'}")
+
+        notes_content = selected_app["Notes"]
+        if notes_content and str(notes_content).strip() and str(notes_content).strip() != "None":
+            st.info(f"📝 **Application Notes & Intelligence:**\n\n{notes_content}")
+
+        if selected_app["Key Requirements"] and str(selected_app["Key Requirements"]).strip() != "None":
+            with st.expander("📌 Key Requirements Recorded in Tracker", expanded=False):
+                st.write(selected_app["Key Requirements"])
+
+    with det_tab2:
+        st.markdown("##### ✏️ Update Application in Master Tracker")
+        st.caption(f"Changes will be written directly to `Final_Job_Application_Tracker-5.xlsx` (Row #{selected_app['_excel_row']}).")
+
+        with st.form(f"update_app_row_form_{selected_app['_excel_row']}"):
+            up_c1, up_c2 = st.columns(2)
+            with up_c1:
+                cur_stat = str(selected_app["Status"]).strip()
+                stat_options = ["Applied", "Screening", "Interviewing", "Offer", "Rejected", "Ghosted (30d+)", "Closed"]
+                stat_idx = stat_options.index(cur_stat) if cur_stat in stat_options else 0
+                new_stat_val = st.selectbox("Status", stat_options, index=stat_idx)
+
+                cur_resp_dt = selected_app["Response Date Clean"]
+                new_resp_dt_val = st.date_input("Response Date", value=cur_resp_dt if cur_resp_dt else None)
+
+            with up_c2:
+                new_next_act_val = st.text_input("Next Action", value=selected_app["Next Action"] if selected_app["Next Action"] else "")
+                new_interview_dates = st.text_input("Interview/Screen Date(s)", value=selected_app["Interview/Screen Date(s)"] if selected_app["Interview/Screen Date(s)"] else "")
+
+            new_notes_val = st.text_area("Notes", value=selected_app["Notes"] if selected_app["Notes"] else "", height=120)
+
+            save_up_btn = st.form_submit_button("💾 Save Updates to Excel Tracker", type="primary", use_container_width=True)
+
+            if save_up_btn:
+                try:
+                    tracker_service.update_application_record(
+                        excel_row=int(selected_app["_excel_row"]),
+                        status=new_stat_val,
+                        response_date=new_resp_dt_val,
+                        next_action=new_next_act_val,
+                        notes=new_notes_val,
+                    )
+                    # Also sync to SQLite if linked
+                    if selected_app["sqlite_job_id"]:
+                        try:
+                            repo.update_application_status(
+                                job_id=int(selected_app["sqlite_job_id"]),
+                                status=new_stat_val.lower(),
+                                notes=new_notes_val,
+                                next_action=new_next_act_val,
+                            )
+                        except Exception as sq_err:
+                            logger.debug(f"SQLite sync note: {sq_err}")
+
+                    _get_cached_applications_df.clear()
+                    st.success(f"🎉 Updated record for **{selected_app['Company']}** in `Final_Job_Application_Tracker-5.xlsx`!")
+                    st.rerun()
+                except Exception as up_err:
+                    st.error(f"Failed to update spreadsheet: {up_err}. If the file is open in Microsoft Excel, please save and close it first.")
+
+    with det_tab3:
+        st.markdown("##### 🚀 Application Launchpad & Agent Integration")
+
+        import urllib.parse
+        comp_clean = str(selected_app["Company"]).strip()
+        title_clean = str(selected_app["Role Title"]).strip()
+        search_query = f"{comp_clean} {title_clean} careers apply"
+        google_url = f"https://www.google.com/search?q={urllib.parse.quote_plus(search_query)}"
+        company_careers_url = f"https://www.google.com/search?q={urllib.parse.quote_plus(f'{comp_clean} careers jobs')}"
+
+        act_col1, act_col2 = st.columns(2)
+        with act_col1:
+            st.link_button(f"🔍 Search Job Posting Online", google_url, type="primary", use_container_width=True)
+        with act_col2:
+            st.link_button(f"🏢 Search {comp_clean} Careers Portal", company_careers_url, use_container_width=True)
+
+        sqlite_id = selected_app["sqlite_job_id"]
+        if sqlite_id:
+            st.markdown("###### 🤖 Connected Job Search Agent Workflows")
+            btn_col1, btn_col2 = st.columns(2)
+            with btn_col1:
+                if st.button("📄 View Tailored Resume & Fit Analysis", key=f"btn_res_jump_{sqlite_id}", use_container_width=True):
+                    st.session_state["load_job_id"] = int(sqlite_id)
                     st.session_state["nav_screen"] = "🔍 Analyze Job"
                     st.rerun()
-            with c_jump2:
-                if st.button("👥 Open Hiring Team & Outreach for this Job", key=f"btn_out_jump_{job.id}", use_container_width=True):
-                    st.session_state["selected_outreach_job_id"] = job.id
+            with btn_col2:
+                if st.button(f"👥 Open Hiring Team & Outreach for {comp_clean}", key=f"btn_out_jump_{sqlite_id}", use_container_width=True):
+                    st.session_state["selected_outreach_job_id"] = int(sqlite_id)
                     st.session_state["nav_screen"] = "👥 People & Outreach"
                     st.rerun()
+        else:
+            st.caption(f"💡 This job is tracked from the master Excel tracker. To generate tailored resumes or discover hiring managers with Job Search Agent, paste the job posting into **🔍 Analyze Job**.")
 
-            with st.expander("ℹ️ How to apply for this job using Job Search Agent", expanded=False):
-                st.markdown(
-                    f"**Follow these 4 steps to maximize your interview conversion:**\n\n"
-                    f"1. **Tailored Resume**: Click **📄 View Tailored Resume & Fit Analysis** above to review your ATS score and download your tailored Word (.docx) or PDF resume for {j_comp}.\n"
-                    f"2. **Submit Application**: Click **🚀 Apply via LinkedIn Job Post** (or Company Careers Portal) to open the live job vacancy and submit your tailored resume.\n"
-                    f"3. **Track Status**: Click **✅ Mark as Applied Today** above once submitted to log the application date and sync your metrics.\n"
-                    f"4. **Outreach Hiring Team**: Click **👥 Open Hiring Team & Outreach** to contact verified recruiters and leaders at {j_comp} for higher conversion."
-                )
-
-            with st.expander("✏️ Update Application Status, Tier & Notes", expanded=False):
-                with st.form(key=f"update_app_form_{job.id}"):
-                    curr_status = app_rec.status if app_rec else "draft"
-                    status_choices = ["draft", "applied", "interviewing", "offer", "rejected", "withdrawn"]
-                    stat_idx = status_choices.index(curr_status) if curr_status in status_choices else 0
-
-                    col_s1, col_s2 = st.columns(2)
-                    with col_s1:
-                        new_status = st.selectbox("Status", status_choices, index=stat_idx)
-                        new_channel = st.selectbox("Channel", ["company_site", "linkedin", "referral", "other"], index=0 if (not app_rec or app_rec.channel == "company_site") else 1)
-                    with col_s2:
-                        tier_choices = ["tier_1", "tier_2", "tier_3", "barrier", "do_not_pursue"]
-                        tier_labels = ["🟢 Tier 1 (Strong Pursue ≥80)", "🟡 Tier 2 (Pursue 70–79)", "🟠 Tier 3 (Selective Pursue 60–69)", "⚫ Barrier (Gate Obstacle)", "🔴 Do Not Pursue (<60)"]
-                        curr_t = fit_info.get("tier", "tier_3") if fit_info else "tier_3"
-                        curr_t_idx = tier_choices.index(curr_t) if curr_t in tier_choices else 2
-                        new_tier_label = st.selectbox("Pursuit Tier Level", tier_labels, index=curr_t_idx)
-                        new_tier = tier_choices[tier_labels.index(new_tier_label)]
-
-                    new_notes = st.text_input("Notes", value=app_rec.notes if (app_rec and app_rec.notes) else "")
-                    save_app = st.form_submit_button("💾 Save Status & Tier")
-                    if save_app:
-                        from datetime import datetime
-                        repo.update_application_status(
-                            job_id=job.id,
-                            status=new_status,
-                            applied_at=app_rec.applied_at if app_rec else datetime.utcnow(),
-                            channel=new_channel,
-                            notes=new_notes,
-                        )
-                        repo.update_job_tier(job_id=job.id, tier=new_tier)
-                        st.success("Application status and Pursuit Tier updated!")
-                        st.rerun()
-
-            ref_col1, ref_col2 = st.columns([1, 1])
-            with ref_col1:
-                if portal_url:
-                    st.markdown(f"**Company Portal:** [{portal_url[:45]}...]({portal_url})")
-            with ref_col2:
-                if li_apply_url:
-                    st.markdown(f"**Source (LinkedIn):** [View Posting]({li_apply_url})")
-
-            st.caption(
-                f"Added: {job.created_at.strftime('%Y-%m-%d %H:%M') if job.created_at else '—'}"
-            )
 
 
 # =============================================================================
