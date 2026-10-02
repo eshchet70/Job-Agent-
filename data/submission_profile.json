@@ -1,0 +1,8 @@
+{
+  "phone": "+1-416-000-0000",
+  "linkedin_url": "https://www.linkedin.com/in/YOUR_LINKEDIN_HANDLE/",
+  "work_authorization": "Canadian Citizen — no sponsorship required",
+  "willing_to_relocate": false,
+  "salary_expectation": "$180,000 – $220,000 CAD",
+  "cover_letter_template": "Dear {company} Hiring Team,\n\nI am excited to apply for the {title} role at {company}. As a Senior Technical Program and Portfolio Manager with 20+ years of experience leading complex cross-functional programs in telecom, enterprise technology, and AI/data initiatives, I am confident I can add immediate value to your team.\n\nI look forward to discussing how my background aligns with your needs.\n\nBest regards,\n{name}\n{location}"
+}

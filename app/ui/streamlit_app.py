@@ -589,7 +589,7 @@ def _render_brief(brief):
     google_search_url = f"https://www.google.com/search?q={company_query}"
     portal_search_url = f"https://www.google.com/search?q={portal_query}"
 
-    raw_url = (job.official_url or "").strip()
+    raw_url = ((job.official_url or "").strip() or (job.source_url or "").strip())
     is_linkedin = "linkedin.com" in raw_url.lower() if raw_url else False
     has_company_url = bool(raw_url and not is_linkedin)
 
@@ -944,7 +944,7 @@ with st.sidebar:
     st.markdown("### 🎯 Job Search Agent")
     st.caption("Evidence-grounded · Human-in-the-loop")
     st.divider()
-    nav_screens = ["🔍 Analyze Job", "📄 Master Resume", "👥 People & Outreach", "📋 Application Record", "📊 Dashboard"]
+    nav_screens = ["🔭 Scout", "🎯 Coordinator", "🔍 Analyze Job", "📄 Master Resume", "👥 People & Outreach", "📋 Application Record", "📊 Dashboard"]
     target_screen = st.session_state.pop("nav_screen", None)
     if target_screen and target_screen in nav_screens:
         st.session_state["nav_screen_radio"] = target_screen
@@ -959,7 +959,7 @@ with st.sidebar:
 
     try:
         stats = repo.get_dashboard_stats()
-        st.metric("Total Jobs", stats["total_jobs"])
+        st.metric("Total Jobs Analyzed", stats["total_jobs"])
         st.metric("Avg ATS Readiness", f"{stats['avg_ats_readiness']:.0f}%")
         if stats["outreach_pending"]:
             st.warning(f"⏳ {stats['outreach_pending']} outreach pending approval")
@@ -979,6 +979,18 @@ with st.sidebar:
                     s.close()
                 except Exception:
                     pass
+    except Exception:
+        pass
+
+    # Scout sidebar stats
+    try:
+        _scout_store_path = Path(__file__).resolve().parent.parent.parent / "data" / "scout" / "jobs.json"
+        if _scout_store_path.exists():
+            _sdata = json.loads(_scout_store_path.read_text(encoding="utf-8"))
+            _sjobs = [j for j in _sdata.get("jobs", {}).values() if j.get("status") == "open"]
+            _t1 = sum(1 for j in _sjobs if j.get("tier") == "tier_1")
+            _t2 = sum(1 for j in _sjobs if j.get("tier") == "tier_2")
+            st.metric("🔭 Scout Matches", f"{len(_sjobs)} open", delta=f"T1:{_t1} T2:{_t2}")
     except Exception:
         pass
 
@@ -1061,6 +1073,33 @@ if screen == "🔍 Analyze Job":
         if st.button("🧹 Clear Screen", key="btn_clear_screen_top", use_container_width=True, help="Clear form inputs and previous analysis results"):
             reset_analyze_screen()
             st.rerun()
+
+    # ── Auto-analyze: triggered from Scout 'Tailor Resume' button ──────────
+    if st.session_state.pop("auto_analyze", False):
+        _aa_company = st.session_state.get("form_company", "")
+        _aa_title   = st.session_state.get("form_title", "")
+        _aa_jd      = st.session_state.get("form_jd", "")
+        _aa_loc     = st.session_state.get("form_location", "")
+        _aa_url     = st.session_state.get("form_url", "")
+        if _aa_company and _aa_title and _aa_jd.strip():
+            with st.spinner(f"⏳ Running analysis for **{_aa_company} — {_aa_title}**…"):
+                try:
+                    _aa_brief = process_job(
+                        jd_text=_aa_jd,
+                        company=_aa_company,
+                        title=_aa_title,
+                        location=_aa_loc or None,
+                        url=_aa_url or None,
+                    )
+                    st.session_state["last_brief"] = _aa_brief
+                    st.success(f"✅ Analysis complete — scroll down to **📄 Tailored Resume Draft** tab below.")
+                except Exception as _aa_exc:
+                    st.error(f"Pipeline error: {_aa_exc}")
+                    st.exception(_aa_exc)
+            if "last_brief" in st.session_state:
+                st.info("⬇️ Your tailored resume is ready. Click the **📄 Tailored Resume Draft** tab below.")
+                _render_brief(st.session_state["last_brief"])
+            st.stop()
 
     work_model_options = ["", "remote", "hybrid", "on-site"]
     current_wm = st.session_state["form_work_model"]
@@ -2266,3 +2305,849 @@ elif screen == "📄 Master Resume":
                         st.markdown(f"- ⚠️ {a}")
         except Exception as e:
             st.error(f"Could not load candidate profile: {e}")
+
+
+# =============================================================================
+# Screen 6: Scout
+# =============================================================================
+elif screen == "🔭 Scout":
+    import subprocess
+    import sys
+
+    st.title("🔭 Daily Job Scout")
+    st.caption("Jobs discovered automatically from 26 company ATS boards (Greenhouse · Lever · Ashby) + Adzuna. Filtered and scored against your profile.")
+
+    SCOUT_STORE = Path(__file__).resolve().parent.parent.parent / "data" / "scout" / "jobs.json"
+
+    # --- Run Scout button ---
+    col_run, col_check = st.columns([2, 1])
+    with col_run:
+        if st.button("▶️ Run Scout Now", type="primary", use_container_width=True, key="btn_run_scout",
+                     help="Fetches all 26 boards, filters by your profile, scores matches, updates jobs.json"):
+            with st.spinner("🔭 Scanning 26 company boards… this takes ~15–30 seconds"):
+                try:
+                    result = subprocess.run(
+                        [sys.executable, "-m", "app.scout", "run"],
+                        capture_output=True, text=True,
+                        cwd=str(Path(__file__).resolve().parent.parent.parent),
+                        timeout=120,
+                    )
+                    if result.returncode == 0:
+                        st.success(result.stdout.strip() or "✅ Scout completed!")
+                    else:
+                        st.error(f"Scout error:\n{result.stderr[:800]}")
+                    st.rerun()
+                except subprocess.TimeoutExpired:
+                    st.error("Scout timed out after 2 minutes.")
+                except Exception as exc:
+                    st.error(f"Could not run scout: {exc}")
+    with col_check:
+        if st.button("🩺 Check Boards", use_container_width=True, key="btn_check_boards",
+                     help="Verify all 26 board slugs are live"):
+            with st.spinner("Checking boards…"):
+                try:
+                    result = subprocess.run(
+                        [sys.executable, "-m", "app.scout", "check"],
+                        capture_output=True, text=True,
+                        cwd=str(Path(__file__).resolve().parent.parent.parent),
+                        timeout=90,
+                    )
+                    lines = (result.stdout or "").strip().split("\n")
+                    ok = sum(1 for l in lines if l.strip().startswith("ok"))
+                    fail = sum(1 for l in lines if l.strip().startswith("FAIL"))
+                    if fail == 0:
+                        st.success(f"✅ All {ok} boards are live!")
+                    else:
+                        st.warning(f"{ok} ok · {fail} failed")
+                        for l in lines:
+                            if "FAIL" in l:
+                                st.caption(l)
+                except Exception as exc:
+                    st.error(f"Check failed: {exc}")
+
+    st.divider()
+
+    # --- Load scout store ---
+    if not SCOUT_STORE.exists():
+        st.info("No scout results yet. Click **▶️ Run Scout Now** above to discover matching jobs.")
+    else:
+        try:
+            sdata = json.loads(SCOUT_STORE.read_text(encoding="utf-8"))
+        except Exception as e:
+            st.error(f"Could not read scout store: {e}")
+            sdata = {}
+
+        all_jobs = list(sdata.get("jobs", {}).values())
+        open_jobs = [j for j in all_jobs if j.get("status") == "open"]
+        runs = sdata.get("runs", [])
+
+        if not open_jobs:
+            st.info("No open jobs in the store yet. Click **▶️ Run Scout Now** to fetch results.")
+        else:
+            # --- Top metrics ---
+            t1 = [j for j in open_jobs if j.get("tier") == "tier_1"]
+            t2 = [j for j in open_jobs if j.get("tier") == "tier_2"]
+            t3 = [j for j in open_jobs if j.get("tier") == "tier_3"]
+            barrier = [j for j in open_jobs if j.get("tier") == "barrier"]
+            last_run = runs[-1]["started_at"][:10] if runs else "unknown"
+
+            mc1, mc2, mc3, mc4, mc5 = st.columns(5)
+            mc1.metric("Open Matches", len(open_jobs))
+            mc2.metric("🟢 Tier 1", len(t1))
+            mc3.metric("🟡 Tier 2", len(t2))
+            mc4.metric("🟠 Tier 3", len(t3))
+            mc5.metric("Last Scout", last_run)
+
+            st.divider()
+
+            # --- Filters ---
+            filter_col1, filter_col2, filter_col3 = st.columns([2, 2, 2])
+            with filter_col1:
+                tier_filter = st.multiselect(
+                    "Filter by Tier",
+                    ["🟢 Tier 1", "🟡 Tier 2", "🟠 Tier 3", "⚫ Barrier"],
+                    default=["🟢 Tier 1", "🟡 Tier 2"],
+                    key="scout_tier_filter",
+                )
+            with filter_col2:
+                companies = sorted(set(j.get("company", "") for j in open_jobs))
+                co_filter = st.multiselect("Filter by Company", companies, default=[], key="scout_co_filter")
+            with filter_col3:
+                sort_by = st.selectbox("Sort by", ["Tier + Score", "Company A–Z", "Posted Date (newest)"], key="scout_sort")
+
+            tier_map = {"🟢 Tier 1": "tier_1", "🟡 Tier 2": "tier_2", "🟠 Tier 3": "tier_3", "⚫ Barrier": "barrier"}
+            selected_tiers = [tier_map[t] for t in tier_filter if t in tier_map]
+
+            filtered = open_jobs
+            if selected_tiers:
+                filtered = [j for j in filtered if j.get("tier") in selected_tiers]
+            if co_filter:
+                filtered = [j for j in filtered if j.get("company") in co_filter]
+
+            if sort_by == "Tier + Score":
+                tier_order = {"tier_1": 0, "tier_2": 1, "tier_3": 2, "barrier": 3}
+                filtered.sort(key=lambda j: (tier_order.get(j.get("tier", "tier_3"), 9), -j.get("fit_score", 0)))
+            elif sort_by == "Company A–Z":
+                filtered.sort(key=lambda j: j.get("company", "").lower())
+            elif sort_by == "Posted Date (newest)":
+                filtered.sort(key=lambda j: j.get("posted_date", ""), reverse=True)
+
+            st.caption(f"Showing **{len(filtered)}** of **{len(open_jobs)}** open matches")
+            st.divider()
+
+            # --- Tier badge helper ---
+            def _tier_badge(tier: str) -> str:
+                return {"tier_1": "🟢 Tier 1", "tier_2": "🟡 Tier 2", "tier_3": "🟠 Tier 3",
+                        "barrier": "⚫ Barrier", "do_not_pursue": "🔴 Do Not Pursue"}.get(tier, "⚪ Unscored")
+
+            # --- Job cards ---
+            for idx, job in enumerate(filtered):
+                tier_badge = _tier_badge(job.get("tier", ""))
+                fit_pct = job.get("fit_score", 0)
+                # fit_score appears to be stored as raw 0-100 weighted score
+                fit_display = f"{fit_pct:.0f}" if fit_pct > 100 else f"{fit_pct:.0f}%"
+                comp = job.get("compensation", "")
+                loc = job.get("location", "")
+                posted = job.get("posted_date", "")
+                url = job.get("url", "")
+                desc = job.get("description", "")
+
+                with st.container():
+                    header_col, badge_col, btn_col = st.columns([5, 2, 2])
+                    with header_col:
+                        st.markdown(f"### {job.get('company', '')} — {job.get('title', '')}")
+                        loc_parts = []
+                        if loc:
+                            loc_parts.append(f"📍 {loc}")
+                        if posted:
+                            loc_parts.append(f"📅 Posted {posted}")
+                        if comp:
+                            loc_parts.append(f"💰 {comp}")
+                        if loc_parts:
+                            st.caption("   ·   ".join(loc_parts))
+                    with badge_col:
+                        st.markdown(f"**{tier_badge}**")
+                        st.caption(f"Fit: {fit_display}")
+                    with btn_col:
+                        if url:
+                            st.markdown(
+                                f'<a href="{url}" target="_blank" style="'
+                                'display:inline-block;width:100%;text-align:center;'
+                                'padding:0.45rem 0.8rem;border-radius:6px;'
+                                'background:#16a34a;color:#fff;font-weight:600;'
+                                'text-decoration:none;font-size:0.9rem;'
+                                'border:1px solid #15803d;margin-bottom:6px;'
+                                '">🚀 Apply Now</a>',
+                                unsafe_allow_html=True,
+                            )
+                        if st.button("🔍 Full Analysis", key=f"scout_analyze_{idx}", use_container_width=True,
+                                     help="Pre-fill the Analyze Job screen with this posting for deep analysis + evidence mapping + outreach"):
+                            st.session_state["form_company"] = job.get("company", "")
+                            st.session_state["form_title"] = job.get("title", "")
+                            st.session_state["form_location"] = job.get("location", "")
+                            st.session_state["form_url"] = job.get("url", "")
+                            st.session_state["form_jd"] = (desc[:8000] if desc else "")
+                            st.session_state.pop("last_brief", None)
+                            st.session_state["nav_screen"] = "🔍 Analyze Job"
+                            st.rerun()
+
+                    # ── Inline Resume vs JD comparison ────────────────────
+                    with st.expander("📊 Compare Resume to This Job", expanded=False):
+                        master_resume = load_master_resume()
+                        if not master_resume.strip():
+                            st.warning("⚠️ No Master Resume loaded. Go to **📄 Master Resume** to upload yours first.")
+                        elif not desc:
+                            st.info("No job description available for this posting.")
+                        else:
+                            cmp_key = f"scout_cmp_{idx}"
+                            if st.button("▶️ Run Comparison", key=f"btn_{cmp_key}", type="primary",
+                                         help="Runs the ATS keyword engine + strategic fit engine against your master resume"):
+                                st.session_state[cmp_key] = None
+                                with st.spinner("Analysing your resume against this job description…"):
+                                     try:
+                                        from app.services.jd_parser import parse_jd
+                                        from app.services.ats_engine import assess
+                                        from app.services import fit_estimator, gate_engine
+                                        from app.models import JobRecord
+
+                                        _text = f"{job.get('title', '')}\n{job.get('location', '')}\n{desc}".strip()
+                                        _rec = JobRecord(
+                                            company=job.get("company", ""),
+                                            title=job.get("title", ""),
+                                            description=_text,
+                                            location=job.get("location"),
+                                            country=job.get("country"),
+                                            work_model=job.get("work_model"),
+                                            official_url=job.get("url"),
+                                            source_type=job.get("source_type", "scout"),
+                                        )
+                                        _parsed = parse_jd(text=_text, company=job.get("company", ""))
+                                        _gate = gate_engine.evaluate_gates(_rec, _parsed)
+                                        _fit = fit_estimator.estimate_fit(_rec, _parsed, _gate)
+                                        _evidence = load_evidence()
+                                        _kw_for_ats = _parsed.keywords + _parsed.must_haves + _parsed.preferred
+                                        _ats = assess(
+                                            keywords=_kw_for_ats,
+                                            resume_text=master_resume,
+                                            evidence=_evidence,
+                                            role_title=job.get("title", ""),
+                                        )
+                                        st.session_state[cmp_key] = {"ats": _ats, "fit": _fit, "parsed": _parsed}
+                                     except Exception as _exc:
+                                        st.error(f"Comparison failed: {_exc}")
+
+
+                            result = st.session_state.get(cmp_key)
+                            if result:
+                                _ats = result["ats"]
+                                _fit = result.get("fit")
+
+                                # Score row
+                                sc1, sc2, sc3, sc4 = st.columns(4)
+                                sc1.metric("ATS Readiness", f"{_ats.readiness:.0f}%",
+                                           help="Overall keyword match score against your resume")
+                                sc2.metric("Critical Keywords", f"{_ats.critical_coverage:.0f}%")
+                                if _fit:
+                                    sc3.metric("Strategic Fit", f"{_fit.weighted_score:.0f}/100")
+                                    sc4.metric("Pursuit Tier", _tier_badge(_fit.tier.value))
+                                else:
+                                    sc3.metric("Important Keywords", f"{_ats.important_coverage:.0f}%")
+                                    sc4.metric("Total Keywords", len(_ats.matches))
+
+                                st.divider()
+
+                                # Keyword breakdown
+                                keep   = [m for m in _ats.matches if m.action.value == "KEEP"]
+                                add    = [m for m in _ats.matches if m.action.value == "ADD"]
+                                strengthen = [m for m in _ats.matches if m.action.value == "STRENGTHEN"]
+                                gap    = [m for m in _ats.matches if m.action.value == "DO_NOT_ADD"]
+
+                                kc1, kc2 = st.columns(2)
+                                with kc1:
+                                    if keep:
+                                        st.markdown(f"**✅ Already in your resume ({len(keep)})**")
+                                        st.caption(", ".join(m.keyword for m in keep[:25]))
+                                    if strengthen:
+                                        st.markdown(f"**💪 Present but could be stronger ({len(strengthen)})**")
+                                        st.caption(", ".join(m.keyword for m in strengthen[:15]))
+                                with kc2:
+                                    if add:
+                                        st.markdown(f"**➕ Missing — but evidence supports adding ({len(add)})**")
+                                        for m in add[:12]:
+                                            ev_hint = f" · *ev: {m.evidence_ids[0]}*" if m.evidence_ids else ""
+                                            st.caption(f"• **{m.keyword}**{ev_hint}")
+                                    if gap:
+                                        st.markdown(f"**❌ Gap — missing & no evidence ({len(gap)})**")
+                                        st.caption(", ".join(m.keyword for m in gap[:15]))
+
+                                # Barriers
+                                if _fit and _fit.barriers:
+                                    st.divider()
+                                    st.warning("⚠️ **Hard Gate barriers that block this role:**")
+                                    for b in _fit.barriers:
+                                        st.caption(f"• {b}")
+
+                                # Action buttons
+                                st.divider()
+                                act1, act2 = st.columns(2)
+                                with act1:
+                                    if st.button("✨ Tailor Resume for This Job", key=f"tailor_{cmp_key}",
+                                                 use_container_width=True,
+                                                 help="Auto-run full analysis and jump to Tailored Resume Draft"):
+                                        st.session_state["form_company"] = job.get("company", "")
+                                        st.session_state["form_title"] = job.get("title", "")
+                                        st.session_state["form_location"] = job.get("location", "")
+                                        st.session_state["form_url"] = job.get("url", "")
+                                        st.session_state["form_jd"] = desc[:8000]
+                                        st.session_state["auto_analyze"] = True
+                                        st.session_state["nav_screen"] = "🔍 Analyze Job"
+                                        st.rerun()
+                                with act2:
+                                    with st.expander("📄 View Job Description"):
+                                        st.markdown(desc[:3000] + ("…" if len(desc) > 3000 else ""))
+
+                    st.divider()
+
+
+# =============================================================================
+# Screen: Coordinator
+# =============================================================================
+elif screen == "🎯 Coordinator":
+    from app.coordinator import CoordinatorAgent, JobStatus
+
+    st.title("🎯 Coordinator")
+    st.caption(
+        "Human-in-the-loop pipeline: Approve jobs → Tailor resume → Approve resume → Submit. "
+        "Nothing is submitted without your explicit confirmation."
+    )
+
+    coord = CoordinatorAgent()
+
+    # ── Sidebar: Funnel summary ───────────────────────────────────────────
+    counts = coord.funnel_counts()
+    total = sum(counts.values())
+    if total:
+        with st.sidebar:
+            st.markdown("**📊 Pipeline Funnel**")
+            funnel_order = [
+                ("discovered", "🔵 Discovered"),
+                ("approved", "✅ Approved"),
+                ("tailoring", "⚙️ Tailoring"),
+                ("resume_ready", "📄 Resume Ready"),
+                ("submission_approved", "🚀 Ready to Submit"),
+                ("submitted", "✉️ Submitted"),
+                ("interview", "🎉 Interview"),
+            ]
+            for key, label in funnel_order:
+                n = counts.get(key, 0)
+                if n:
+                    st.caption(f"{label}: **{n}**")
+
+    # ── Top action bar ────────────────────────────────────────────────────
+    col_sync, col_info = st.columns([2, 4])
+    with col_sync:
+        if st.button("🔄 Sync from Scout", type="primary", use_container_width=True,
+                     help="Pull new Tier 1 & 2 jobs from the Scout store into this queue"):
+            with st.spinner("Syncing…"):
+                added = coord.ingest_scout_results(min_tier="tier_2")
+            if added:
+                st.success(f"✅ Added **{added}** new job(s) to the queue.")
+                st.rerun()
+            else:
+                st.info("No new jobs to add (all Tier 1/2 jobs already in queue).")
+    with col_info:
+        pending = coord.pending_approvals()
+        resume_ready = coord.resume_ready_for_review()
+        sub_ready = coord.approved_for_submission()
+        badges = []
+        if pending: badges.append(f"🔵 **{len(pending)}** awaiting approval")
+        if resume_ready: badges.append(f"📄 **{len(resume_ready)}** resume(s) to review")
+        if sub_ready: badges.append(f"🚀 **{len(sub_ready)}** ready to submit")
+        if badges:
+            st.info("  ·  ".join(badges))
+
+    st.divider()
+
+    # ═══════════════════════════════════════════════════════════════════
+    # GATE 1 — Approve discovered jobs
+    # ═══════════════════════════════════════════════════════════════════
+    if pending:
+        st.subheader(f"🔵 Gate 1 — Approve for Resume Tailoring ({len(pending)} jobs)")
+        st.caption("Review each match and decide whether to tailor your resume for it.")
+
+        for entry in sorted(pending, key=lambda e: (-e.fit_score)):
+            tier_badge = {"tier_1": "🟢 Tier 1", "tier_2": "🟡 Tier 2", "tier_3": "🟠 Tier 3"}.get(entry.tier, entry.tier)
+            with st.container(border=True):
+                hc1, hc2, hc3 = st.columns([5, 2, 3])
+                with hc1:
+                    st.markdown(f"**{entry.company} — {entry.title}**")
+                    loc = getattr(entry, "location", "") or "Unknown"
+                    fit = getattr(entry, "fit_score", 0)
+                    ats_r = getattr(entry, "ats_readiness", 0)
+                    st.caption(f"📍 {loc}  ·  Fit: {fit:.0f}/100  ·  ATS: {ats_r:.0f}%")
+                with hc2:
+                    st.markdown(f"**{tier_badge}**")
+                with hc3:
+                    bc1, bc2 = st.columns(2)
+                    with bc1:
+                        if st.button("✅ Approve", key=f"approve_{entry.id}", use_container_width=True, type="primary"):
+                            coord.approve_job(entry.id)
+                            st.rerun()
+                    with bc2:
+                        if st.button("⏭ Skip", key=f"skip_{entry.id}", use_container_width=True):
+                            coord.skip_job(entry.id, "Skipped by user")
+                            st.rerun()
+
+                m_kw = getattr(entry, "matched_keywords", [])
+                e_notes = getattr(entry, "notes", "")
+                if m_kw or e_notes:
+                    with st.expander("Details"):
+                        if m_kw:
+                            st.caption("✅ Keywords already matched: " + ", ".join(m_kw[:8]))
+                        if entry.url:
+                            st.markdown(
+                                f'<a href="{entry.url}" target="_blank" style="font-size:0.85rem">🔗 View Job Posting</a>',
+                                unsafe_allow_html=True,
+                            )
+        st.divider()
+
+    # ═══════════════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════════════
+    # Gate 1.5 + Tailor: Contacts verification + Resume tailoring
+    # ═══════════════════════════════════════════════════════════════════
+    approved_jobs = coord.queue.by_status(JobStatus.approved)
+    if approved_jobs:
+        st.subheader(f"⚙️ Approved Jobs — Contacts & Resume Tailoring ({len(approved_jobs)} jobs)")
+        st.caption("Step 1: Find & verify hiring contacts. Step 2: Tailor your resume.")
+
+        for entry in approved_jobs:
+            contacts_found = entry.as_dict().get("contacts_found", 0)
+            contacts_icon = "✅" if contacts_found else "🔍"
+
+            with st.container(border=True):
+                # Header
+                hdr1, hdr2 = st.columns([7, 3])
+                with hdr1:
+                    st.markdown(f"**{entry.company} — {entry.title}**")
+                    appr_loc = getattr(entry, "location", "") or "Unknown"
+                    appr_fit = getattr(entry, "fit_score", 0)
+                    st.caption(f"📍 {appr_loc}  ·  Fit: {appr_fit:.0f}/100")
+                with hdr2:
+                    if entry.url:
+                        st.markdown(
+                            f'<a href="{entry.url}" target="_blank" style="font-size:0.85rem">🔗 View Job Posting</a>',
+                            unsafe_allow_html=True,
+                        )
+
+                # ── Gate 1.5: Contacts ─────────────────────────────────
+                with st.expander(
+                    f"{contacts_icon} Hiring Contacts"
+                    f"{' — ' + str(contacts_found) + ' found' if contacts_found else ' — Not yet verified'}",
+                    expanded=not contacts_found,
+                ):
+                    cc1, cc2 = st.columns([3, 5])
+                    with cc1:
+                        if st.button(
+                            "🔍 Find & Verify Contacts",
+                            key=f"contacts_{entry.id}",
+                            use_container_width=True,
+                            type="primary" if not contacts_found else "secondary",
+                            help="Scrape ATS metadata + generate LinkedIn/X-Ray search URLs",
+                        ):
+                            with st.spinner(f"Searching for contacts at {entry.company}…"):
+                                cr = coord.verify_contacts(entry.id)
+                            if cr:
+                                st.rerun()
+                            else:
+                                st.error("Contact search failed.")
+                    with cc2:
+                        st.caption(
+                            "Scrapes public ATS job metadata · Generates LinkedIn & Google X-Ray search links · No login required"
+                        )
+
+                    # Show results if already run
+                    cr = coord.load_contacts(entry.id)
+                    if cr:
+                        all_contacts = cr.all_contacts()
+                        if all_contacts:
+                            st.markdown("**✅ Verified Contacts**")
+                            for c in all_contacts:
+                                confidence = c.get("confidence", "")
+                                badge = {"high": "🟢", "medium": "🟡", "low": "🟠"}.get(str(confidence), "⚪")
+                                ptype = str(c.get("person_type", "")).replace("_", " ").title()
+                                col_a, col_b = st.columns([4, 2])
+                                with col_a:
+                                    st.markdown(
+                                        f"{badge} **{c.get('name', '—')}** · {c.get('current_title', '')} · _{ptype}_"
+                                    )
+                                    if c.get("relationship_to_job"):
+                                        st.caption(c["relationship_to_job"][:120])
+                                with col_b:
+                                    if c.get("source_url"):
+                                        st.markdown(
+                                            f'<a href="{c["source_url"]}" target="_blank" style="font-size:0.82rem">🔗 LinkedIn Profile</a>',
+                                            unsafe_allow_html=True,
+                                        )
+                        else:
+                            st.info("No confirmed contacts found automatically. Use the search links below to find contacts manually.")
+
+                        if cr.quick_links:
+                            st.markdown("**🔎 Find Contacts Manually**")
+                            for lnk in cr.quick_links:
+                                st.markdown(
+                                    f'<a href="{lnk["url"]}" target="_blank" style="font-size:0.85rem">{lnk["label"]}</a>'
+                                    f'<span style="color:#888;font-size:0.78rem;margin-left:8px">{lnk["purpose"]}</span>',
+                                    unsafe_allow_html=True,
+                                )
+
+                # ── Resume Tailoring ───────────────────────────────────
+                st.markdown("---")
+                rc1, rc2 = st.columns([5, 3])
+                with rc1:
+                    st.caption("Resume tailoring uses your master resume + evidence library to inject missing keywords.")
+                with rc2:
+                    if st.button("⚙️ Tailor Resume", key=f"tailor_{entry.id}", use_container_width=True, type="primary"):
+                        with st.spinner(f"Tailoring resume for {entry.company}…"):
+                            path = coord.run_tailoring(entry.id)
+                        if path:
+                            st.success(f"✅ Resume saved to `{path}`")
+                            st.rerun()
+                        else:
+                            st.error("Tailoring failed — check logs.")
+        st.divider()
+
+    in_progress = coord.queue.by_status(JobStatus.tailoring)
+    if in_progress:
+        st.info(f"⚙️ **{len(in_progress)}** resume(s) currently being tailored…")
+        st.divider()
+
+    # ═══════════════════════════════════════════════════════════════════
+    # GATE 2 — Review tailored resumes
+    # ═══════════════════════════════════════════════════════════════════
+    if resume_ready:
+        st.subheader(f"📄 Gate 2 — Review Tailored Resumes ({len(resume_ready)} jobs)")
+        st.caption("Review each tailored resume. Approve to proceed to submission, or reject to re-tailor.")
+
+        for entry in resume_ready:
+            with st.container(border=True):
+                st.markdown(f"**{entry.company} — {entry.title}**")
+                resume_path = entry.tailored_resume_path
+                if resume_path and Path(resume_path).exists():
+                    with st.expander("📄 Preview Tailored Resume", expanded=True):
+                        try:
+                            content = Path(resume_path).read_text(encoding="utf-8")
+                            st.text_area("Tailored Resume", value=content[:4000], height=300,
+                                         key=f"preview_{entry.id}", label_visibility="collapsed")
+                        except Exception:
+                            st.info(f"Resume at: `{resume_path}`")
+
+                rc1, rc2, rc3 = st.columns(3)
+                with rc1:
+                    if st.button("✅ Approve & Proceed", key=f"apprsub_{entry.id}",
+                                 use_container_width=True, type="primary"):
+                        coord.approve_resume(entry.id)
+                        st.success("Resume approved — ready for submission!")
+                        st.rerun()
+                with rc2:
+                    feedback = st.text_input("Rejection reason", key=f"feedback_{entry.id}",
+                                             placeholder="e.g. missing AI keywords")
+                with rc3:
+                    if st.button("🔄 Re-tailor", key=f"retailor_{entry.id}", use_container_width=True):
+                        coord.reject_resume(entry.id, feedback)
+                        st.rerun()
+        st.divider()
+
+    # ═══════════════════════════════════════════════════════════════════
+    # GATE 3 — Confirm & Submit
+    # ═══════════════════════════════════════════════════════════════════
+    if sub_ready:
+        st.subheader(f"🚀 Gate 3 — Confirm & Submit ({len(sub_ready)} jobs)")
+        st.warning(
+            "⚠️ **Final human gate.** Clicking Submit will open the job URL in a visible "
+            "browser window, fill the form, and upload your resume. You must watch the browser "
+            "and confirm the final submit click yourself."
+        )
+
+        from app.agents.submission_agent import SubmissionAgent, detect_ats
+        sub_agent = SubmissionAgent()
+        playwright_ok, playwright_msg = sub_agent.is_available()
+
+        if not playwright_ok:
+            st.error(f"🔴 Submission Agent not available: {playwright_msg}")
+
+        for entry in sub_ready:
+            with st.container(border=True):
+                st.markdown(f"**{entry.company} — {entry.title}**")
+                ats_detected = detect_ats(entry.url) if entry.url else "unknown"
+                st.caption(
+                    f"ATS: **{ats_detected.title()}**  ·  "
+                    f"Resume: `{Path(entry.tailored_resume_path).name if entry.tailored_resume_path else '—'}`"
+                )
+                if entry.url:
+                    st.markdown(
+                        f'<a href="{entry.url}" target="_blank" style="font-size:0.85rem">🔗 Review Job Posting First</a>',
+                        unsafe_allow_html=True,
+                    )
+
+                g3c1, g3c2, g3c3 = st.columns(3)
+                with g3c1:
+                    if playwright_ok and st.button(
+                        "👁 Dry Run (fill, no submit)",
+                        key=f"dryrun_{entry.id}",
+                        use_container_width=True,
+                    ):
+                        with st.spinner("Opening browser and filling form…"):
+                            result = sub_agent.prefill_preview(
+                                url=entry.url,
+                                resume_path=Path(entry.tailored_resume_path),
+                                company=entry.company,
+                                title=entry.title,
+                            )
+                        if result.get("screenshot"):
+                            st.image(result["screenshot"], caption="Form pre-filled (not submitted)")
+                        st.info(f"Fields filled: {', '.join(result.get('fields_filled', []))}")
+                        if result.get("fields_skipped"):
+                            st.caption(f"Skipped: {', '.join(result.get('fields_skipped', []))}")
+
+                with g3c2:
+                    confirm_key = f"confirm_{entry.id}"
+                    confirmed = st.checkbox(
+                        "☑️ I have reviewed the job posting and my resume",
+                        key=confirm_key,
+                    )
+
+                with g3c3:
+                    if playwright_ok and confirmed:
+                        if st.button(
+                            "🚀 SUBMIT APPLICATION",
+                            key=f"submit_{entry.id}",
+                            type="primary",
+                            use_container_width=True,
+                        ):
+                            with st.spinner("Submitting application…"):
+                                result = coord.submit_job(entry.id, dry_run=False)
+                            if result.get("success"):
+                                st.balloons()
+                                st.success(f"✅ Application submitted to {entry.company}!")
+                                if result.get("confirmation_screenshot"):
+                                    st.image(result["confirmation_screenshot"], caption="Submission confirmation")
+                                st.rerun()
+                            else:
+                                st.error(f"Submission failed: {result.get('error', 'Unknown error')}")
+                    elif not confirmed:
+                        st.caption("☝️ Check the confirmation box first")
+        st.divider()
+
+    # ═══════════════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════════════
+    # Submitted jobs + Interview tracking
+    # ═══════════════════════════════════════════════════════════════════
+    submitted_jobs = coord.submitted()
+    if submitted_jobs:
+        st.subheader(f"✉️ Submitted Applications & Interview Tracker ({len(submitted_jobs)})")
+
+        from app.agents.interview_agent import (
+            InterviewAgent, RoundType, RoundOutcome, verify_record
+        )
+        iv_agent = InterviewAgent()
+
+        for entry in submitted_jobs:
+            status_icon = {"submitted": "✉️", "interview": "🎉", "rejected": "❌"}.get(entry.status.value, "✉️")
+            submitted_at = entry.as_dict().get("submitted_at", "")
+
+            with st.container(border=True):
+                hdr_a, hdr_b = st.columns([6, 4])
+                with hdr_a:
+                    st.markdown(f"{status_icon} **{entry.company} — {entry.title}**")
+                    if submitted_at:
+                        st.caption(f"Applied: {submitted_at[:10]}")
+                with hdr_b:
+                    oc1, oc2, oc3 = st.columns(3)
+                    for col, (outcome, label) in zip([oc1, oc2, oc3], [
+                        ("interview", "🎉 Interview"),
+                        ("rejected", "❌ Rejected"),
+                        ("no_response", "💤 No Response"),
+                    ]):
+                        with col:
+                            if st.button(label, key=f"outcome_{entry.id}_{outcome}", use_container_width=True):
+                                entry.mark_outcome(outcome)
+                                coord.queue.update(entry)
+                                coord.save()
+                                st.rerun()
+
+                iv_record = iv_agent.get_or_create(
+                    job_id=entry.id, company=entry.company,
+                    title=entry.title, url=entry.url,
+                )
+
+                tabs = st.tabs(["📋 Rounds", "➕ Log Round", "🔍 Verify", "🧠 AI Assessment"])
+
+                with tabs[0]:
+                    if not iv_record.rounds:
+                        st.info("No interview rounds logged yet. Use the **➕ Log Round** tab.")
+                    else:
+                        for r in iv_record.rounds:
+                            ob = {"passed": "🟢", "rejected": "🔴", "pending": "🟡", "unknown": "⚪"}.get(r.outcome, "⚪")
+                            with st.expander(f"{ob} Round {r.round_number} — {r.round_type.replace('_',' ').title()} ({r.date or 'date unknown'})"):
+                                c1, c2 = st.columns(2)
+                                with c1:
+                                    st.markdown(f"**Interviewer:** {r.interviewer_name or '—'}")
+                                    st.markdown(f"**Title:** {r.interviewer_title or '—'}")
+                                    st.markdown(f"**Format:** {r.format or '—'}  ·  **Duration:** {r.duration_minutes or '?'} min")
+                                with c2:
+                                    st.markdown(f"**Outcome:** {ob} {r.outcome.title()}")
+                                    if r.outcome_notes: st.caption(r.outcome_notes)
+                                if r.topics_covered:
+                                    st.markdown(f"**Topics:** {', '.join(r.topics_covered)}")
+                                if r.questions_asked:
+                                    st.markdown("**Questions asked:**")
+                                    for q in r.questions_asked: st.markdown(f"  - {q}")
+                                if r.candidate_notes:
+                                    st.markdown("**Your notes:**")
+                                    st.markdown(r.candidate_notes)
+                                new_outcome = st.selectbox(
+                                    "Update outcome",
+                                    options=[o.value for o in RoundOutcome],
+                                    index=next((i for i, o in enumerate(RoundOutcome) if o.value == r.outcome), 0),
+                                    key=f"outcome_upd_{entry.id}_{r.round_number}",
+                                )
+                                if st.button("Save outcome", key=f"save_out_{entry.id}_{r.round_number}"):
+                                    iv_agent.update_round(iv_record, r.round_number, {"outcome": new_outcome})
+                                    st.rerun()
+
+                with tabs[1]:
+                    st.markdown("**Log a new interview round**")
+                    rtype = st.selectbox("Round type", options=[t.value for t in RoundType],
+                                         format_func=lambda x: x.replace("_", " ").title(),
+                                         key=f"rtype_{entry.id}")
+                    rc1, rc2 = st.columns(2)
+                    with rc1:
+                        r_date = st.date_input("Interview date", key=f"rdate_{entry.id}")
+                        r_interviewer = st.text_input("Interviewer name", key=f"rint_{entry.id}")
+                        r_int_title = st.text_input("Interviewer title", key=f"rtitle_{entry.id}")
+                    with rc2:
+                        r_duration = st.number_input("Duration (minutes)", 0, 480, 60, key=f"rdur_{entry.id}")
+                        r_format = st.selectbox("Format", ["video", "phone", "on-site", "async", "other"], key=f"rfmt_{entry.id}")
+                        r_outcome = st.selectbox("Outcome", options=[o.value for o in RoundOutcome],
+                                                  format_func=lambda x: x.title(), key=f"routcome_{entry.id}")
+                    r_topics = st.text_area("Topics covered (one per line)",
+                                            placeholder="Portfolio governance\nAI program delivery",
+                                            key=f"rtopics_{entry.id}", height=70)
+                    r_questions = st.text_area("Questions asked (one per line)",
+                                               placeholder="Tell me about a complex program you managed...",
+                                               key=f"rquestions_{entry.id}", height=70)
+                    r_notes = st.text_area("Your notes & impressions ✍️",
+                                           placeholder="How did it go? What felt uncertain? Any red flags?",
+                                           key=f"rnotes_{entry.id}", height=100)
+                    r_out_notes = st.text_input("Outcome notes (optional)",
+                                                placeholder="Recruiter said they'll follow up in 3 days",
+                                                key=f"routnotes_{entry.id}")
+                    if st.button("💾 Save Round", key=f"save_round_{entry.id}", type="primary", use_container_width=True):
+                        if not r_notes.strip():
+                            st.warning("Please add at least some notes before saving.")
+                        else:
+                            iv_agent.add_round(iv_record, {
+                                "round_type": rtype, "date": r_date.isoformat() if r_date else "",
+                                "interviewer_name": r_interviewer, "interviewer_title": r_int_title,
+                                "duration_minutes": r_duration, "format": r_format,
+                                "topics_covered": [t.strip() for t in r_topics.splitlines() if t.strip()],
+                                "questions_asked": [q.strip() for q in r_questions.splitlines() if q.strip()],
+                                "candidate_notes": r_notes.strip(), "outcome": r_outcome,
+                                "outcome_notes": r_out_notes.strip(),
+                            })
+                            st.success(f"✅ Round {len(iv_record.rounds) + 1} saved!")
+                            st.rerun()
+
+                with tabs[2]:
+                    vr = verify_record(iv_record)
+                    st.metric("Record Completeness", f"{vr.completeness_pct}%",
+                              delta="Ready" if vr.is_valid else "Needs more data")
+                    st.progress(vr.completeness_pct / 100)
+                    for e in vr.errors: st.error(f"❌ {e}")
+                    for w in vr.warnings: st.warning(f"⚠️ {w}")
+                    if vr.is_valid and not vr.warnings:
+                        st.success("✅ Record looks complete — run the AI Assessment!")
+
+                with tabs[3]:
+                    cached = iv_record.last_assessment
+                    if iv_record.last_assessed_at:
+                        st.caption(f"Last assessed: {iv_record.last_assessed_at[:10]}")
+                    ac1, ac2 = st.columns(2)
+                    with ac1:
+                        if st.button("🧠 Run AI Assessment", key=f"assess_{entry.id}", type="primary",
+                                     use_container_width=True):
+                            if not iv_record.rounds:
+                                st.warning("Log at least one round first.")
+                            else:
+                                with st.spinner("Analyzing with Claude…"):
+                                    coord.run_interview_assessment(entry.id, force_refresh=True)
+                                iv_record = iv_agent.load(entry.id) or iv_record
+                                cached = iv_record.last_assessment
+                                st.rerun()
+                    with ac2:
+                        if cached and st.button("🔄 Refresh", key=f"reassess_{entry.id}", use_container_width=True):
+                            with st.spinner("Re-analyzing…"):
+                                coord.run_interview_assessment(entry.id, force_refresh=True)
+                            iv_record = iv_agent.load(entry.id) or iv_record
+                            cached = iv_record.last_assessment
+                            st.rerun()
+
+                    if cached:
+                        if cached.get("_placeholder"):
+                            st.info(cached.get("overall_impression", ""))
+                        else:
+                            st.markdown("### 🎯 Overall Assessment")
+                            st.markdown(cached.get("overall_impression", ""))
+                            likelihood = cached.get("likelihood_to_proceed", "uncertain")
+                            lmap = {"very_likely": ("🟢", "Very Likely"), "likely": ("🟢", "Likely"),
+                                    "uncertain": ("🟡", "Uncertain"), "unlikely": ("🔴", "Unlikely"),
+                                    "very_unlikely": ("🔴", "Very Unlikely")}
+                            licon, ltext = lmap.get(likelihood, ("⚪", likelihood.title()))
+                            st.markdown(f"**Likelihood to Proceed:** {licon} **{ltext}**")
+                            st.caption(cached.get("likelihood_rationale", ""))
+                            st.markdown("---")
+                            dims = cached.get("dimension_scores", {})
+                            if dims:
+                                st.markdown("### 📊 Dimension Scores")
+                                for key, label in [("communication", "💬 Communication"),
+                                                    ("technical_fit", "⚙️ Technical Fit"),
+                                                    ("leadership_fit", "🏆 Leadership Fit"),
+                                                    ("cultural_fit", "🤝 Cultural Fit"),
+                                                    ("candidate_preparedness", "📚 Preparedness")]:
+                                    if key in dims:
+                                        score = dims[key].get("score", 0)
+                                        sc1, sc2 = st.columns([3, 5])
+                                        with sc1:
+                                            color = "🟢" if score >= 7 else ("🟡" if score >= 5 else "🔴")
+                                            st.markdown(f"{color} **{label}**: {score}/10")
+                                        with sc2:
+                                            st.caption(dims[key].get("rationale", ""))
+                            st.markdown("---")
+                            sig_c1, sig_c2 = st.columns(2)
+                            with sig_c1:
+                                for s in cached.get("positive_signals", []): st.markdown(f"✅ {s}")
+                                for s in cached.get("strengths_demonstrated", []): st.markdown(f"💪 {s}")
+                            with sig_c2:
+                                for s in cached.get("concerning_signals", []): st.markdown(f"⚠️ {s}")
+                                for g in cached.get("gaps_identified", []): st.markdown(f"❌ {g}")
+                            st.markdown("---")
+                            for a in cached.get("follow_up_actions", []): st.markdown(f"  - {a}")
+                            if cached.get("next_round_prep"):
+                                st.markdown("**📚 Next Round Preparation**")
+                                for p in cached["next_round_prep"]: st.markdown(f"  - {p}")
+                            with st.expander("✉️ Thank-You Note Points"):
+                                for tp in cached.get("thank_you_note_points", []): st.markdown(f"  - {tp}")
+                            stage = cached.get("process_stage", "")
+                            timeline = cached.get("estimated_timeline", "")
+                            if stage or timeline:
+                                st.caption(f"📍 Stage: {stage}  ·  ⏱ Timeline: {timeline}")
+                    elif iv_record.rounds:
+                        st.info("Click 🧠 **Run AI Assessment** to analyze your interview performance.")
+                    else:
+                        st.info("Log interview rounds first, then run the AI Assessment.")
+
+    if not total:
+        st.info(
+            "No jobs in the coordinator queue yet. "
+            "Click **🔄 Sync from Scout** to pull your Tier 1 & 2 matches."
+        )
