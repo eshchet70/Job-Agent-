@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-10-02T04:44:13+00:00",
+  "updated_at": "2026-10-02T19:22:55+00:00",
   "entries": {
     "ashby:cohere:41cb2a12-e33a-4368-a9f8-0ae0d19c023e": {
       "id": "ashby:cohere:41cb2a12-e33a-4368-a9f8-0ae0d19c023e",
@@ -208,7 +208,7 @@
     },
     "greenhouse:okta:8205101": {
       "id": "greenhouse:okta:8205101",
-      "status": "discovered",
+      "status": "approved",
       "company": "Okta",
       "title": "Senior Engineering Technical Program Manager - Jira Administration",
       "url": "https://www.okta.com/company/careers/opportunity/8205101?gh_jid=8205101",
@@ -236,7 +236,8 @@
         "sprint"
       ],
       "missing_supported": [],
-      "added_at": "2026-10-02T04:14:35+00:00"
+      "added_at": "2026-10-02T04:14:35+00:00",
+      "approved_at": "2026-10-02T19:22:55+00:00"
     },
     "greenhouse:stripe:8114397": {
       "id": "greenhouse:stripe:8114397",

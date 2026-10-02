@@ -2315,7 +2315,7 @@ elif screen == "🔭 Scout":
     import sys
 
     st.title("🔭 Daily Job Scout")
-    st.caption("Jobs discovered automatically from 26 company ATS boards (Greenhouse · Lever · Ashby) + Adzuna. Filtered and scored against your profile.")
+    st.caption("Autonomous job discovery and suitability assessment across 26 company ATS boards + Adzuna. Filtered and scored against your profile, seniority, authorization, and verified evidence. Application tailoring and submission are managed downstream in the **🎯 Coordinator** pipeline.")
 
     SCOUT_STORE = Path(__file__).resolve().parent.parent.parent / "data" / "scout" / "jobs.json"
 
@@ -2440,171 +2440,124 @@ elif screen == "🔭 Scout":
                 return {"tier_1": "🟢 Tier 1", "tier_2": "🟡 Tier 2", "tier_3": "🟠 Tier 3",
                         "barrier": "⚫ Barrier", "do_not_pursue": "🔴 Do Not Pursue"}.get(tier, "⚪ Unscored")
 
+            from app.coordinator import CoordinatorAgent
+            coord = CoordinatorAgent()
+
             # --- Job cards ---
             for idx, job in enumerate(filtered):
+                job_id = job.get("id", f"scout_{idx}")
                 tier_badge = _tier_badge(job.get("tier", ""))
                 fit_pct = job.get("fit_score", 0)
-                # fit_score appears to be stored as raw 0-100 weighted score
-                fit_display = f"{fit_pct:.0f}" if fit_pct > 100 else f"{fit_pct:.0f}%"
+                fit_display = f"{fit_pct:.0f}%" if fit_pct <= 100 else f"{fit_pct:.0f}"
+                ats_score = job.get("ats_readiness")
                 comp = job.get("compensation", "")
                 loc = job.get("location", "")
+                work_model = job.get("work_model", "")
                 posted = job.get("posted_date", "")
                 url = job.get("url", "")
                 desc = job.get("description", "")
+                role_family = job.get("role_family", "")
+                seniority = job.get("seniority", "")
+                authorization = job.get("authorization", "")
+                barriers = job.get("barriers", [])
+                fit_notes = job.get("fit_notes", {})
+                matched_kw = job.get("matched_keywords", [])
+                missing_supp = job.get("missing_supported", [])
+                missing_unsupp = job.get("missing_unsupported", [])
 
                 with st.container():
-                    header_col, badge_col, btn_col = st.columns([5, 2, 2])
+                    header_col, badge_col, btn_col = st.columns([5, 2, 2.2])
                     with header_col:
                         st.markdown(f"### {job.get('company', '')} — {job.get('title', '')}")
-                        loc_parts = []
+                        meta_parts = []
                         if loc:
-                            loc_parts.append(f"📍 {loc}")
+                            meta_parts.append(f"📍 {loc}")
+                        if work_model:
+                            meta_parts.append(f"🏢 {work_model.title()}")
                         if posted:
-                            loc_parts.append(f"📅 Posted {posted}")
+                            meta_parts.append(f"📅 Posted {posted}")
                         if comp:
-                            loc_parts.append(f"💰 {comp}")
-                        if loc_parts:
-                            st.caption("   ·   ".join(loc_parts))
+                            meta_parts.append(f"💰 {comp}")
+                        if meta_parts:
+                            st.caption("   ·   ".join(meta_parts))
+
+                        tag_parts = []
+                        if role_family:
+                            tag_parts.append(f"💼 **Role**: {role_family}")
+                        if seniority:
+                            tag_parts.append(f"🎖️ **Level**: {seniority.title()}")
+                        if authorization:
+                            tag_parts.append(f"🛂 **Auth**: {authorization.replace('_', ' ').title()}")
+                        if tag_parts:
+                            st.caption("   ·   ".join(tag_parts))
+
                     with badge_col:
                         st.markdown(f"**{tier_badge}**")
-                        st.caption(f"Fit: {fit_display}")
+                        st.markdown(f"**Strategic Fit**: `{fit_display}`")
+                        if ats_score is not None:
+                            st.caption(f"ATS Readiness: {ats_score:.0f}%")
+
                     with btn_col:
-                        if url:
-                            st.markdown(
-                                f'<a href="{url}" target="_blank" style="'
-                                'display:inline-block;width:100%;text-align:center;'
-                                'padding:0.45rem 0.8rem;border-radius:6px;'
-                                'background:#16a34a;color:#fff;font-weight:600;'
-                                'text-decoration:none;font-size:0.9rem;'
-                                'border:1px solid #15803d;margin-bottom:6px;'
-                                '">🚀 Apply Now</a>',
-                                unsafe_allow_html=True,
-                            )
-                        if st.button("🔍 Full Analysis", key=f"scout_analyze_{idx}", use_container_width=True,
-                                     help="Pre-fill the Analyze Job screen with this posting for deep analysis + evidence mapping + outreach"):
-                            st.session_state["form_company"] = job.get("company", "")
-                            st.session_state["form_title"] = job.get("title", "")
-                            st.session_state["form_location"] = job.get("location", "")
-                            st.session_state["form_url"] = job.get("url", "")
-                            st.session_state["form_jd"] = (desc[:8000] if desc else "")
-                            st.session_state.pop("last_brief", None)
-                            st.session_state["nav_screen"] = "🔍 Analyze Job"
-                            st.rerun()
-
-                    # ── Inline Resume vs JD comparison ────────────────────
-                    with st.expander("📊 Compare Resume to This Job", expanded=False):
-                        master_resume = load_master_resume()
-                        if not master_resume.strip():
-                            st.warning("⚠️ No Master Resume loaded. Go to **📄 Master Resume** to upload yours first.")
-                        elif not desc:
-                            st.info("No job description available for this posting.")
+                        in_queue = coord.queue.exists(job_id)
+                        if in_queue:
+                            q_entry = coord.queue.get(job_id)
+                            status_label = q_entry.status.value.replace("_", " ").title() if q_entry else "In Queue"
+                            if st.button(f"🎯 In Pipeline ({status_label})", key=f"scout_coord_{idx}", use_container_width=True,
+                                         help="This role is in your Coordinator pipeline. Click to manage approvals, outreach, and tailoring."):
+                                st.session_state["nav_screen"] = "🎯 Coordinator"
+                                st.rerun()
                         else:
-                            cmp_key = f"scout_cmp_{idx}"
-                            if st.button("▶️ Run Comparison", key=f"btn_{cmp_key}", type="primary",
-                                         help="Runs the ATS keyword engine + strategic fit engine against your master resume"):
-                                st.session_state[cmp_key] = None
-                                with st.spinner("Analysing your resume against this job description…"):
-                                     try:
-                                        from app.services.jd_parser import parse_jd
-                                        from app.services.ats_engine import assess
-                                        from app.services import fit_estimator, gate_engine
-                                        from app.models import JobRecord
+                            if st.button("➕ Send to Coordinator", key=f"scout_add_coord_{idx}", use_container_width=True,
+                                         help="Add this job to your Coordinator pipeline for approval, contacts, and resume tailoring."):
+                                coord.queue.upsert_from_scout(job)
+                                coord.save()
+                                st.toast(f"Queued {job.get('company', '')} for Coordinator pipeline!", icon="🎯")
+                                st.rerun()
 
-                                        _text = f"{job.get('title', '')}\n{job.get('location', '')}\n{desc}".strip()
-                                        _rec = JobRecord(
-                                            company=job.get("company", ""),
-                                            title=job.get("title", ""),
-                                            description=_text,
-                                            location=job.get("location"),
-                                            country=job.get("country"),
-                                            work_model=job.get("work_model"),
-                                            official_url=job.get("url"),
-                                            source_type=job.get("source_type", "scout"),
-                                        )
-                                        _parsed = parse_jd(text=_text, company=job.get("company", ""))
-                                        _gate = gate_engine.evaluate_gates(_rec, _parsed)
-                                        _fit = fit_estimator.estimate_fit(_rec, _parsed, _gate)
-                                        _evidence = load_evidence()
-                                        _kw_for_ats = _parsed.keywords + _parsed.must_haves + _parsed.preferred
-                                        _ats = assess(
-                                            keywords=_kw_for_ats,
-                                            resume_text=master_resume,
-                                            evidence=_evidence,
-                                            role_title=job.get("title", ""),
-                                        )
-                                        st.session_state[cmp_key] = {"ats": _ats, "fit": _fit, "parsed": _parsed}
-                                     except Exception as _exc:
-                                        st.error(f"Comparison failed: {_exc}")
+                        if url:
+                            st.link_button("🔗 View Posting", url, use_container_width=True)
 
+                    # ── Suitability Assessment Details ────────────────────
+                    with st.expander("🔎 Suitability Assessment Details", expanded=False):
+                        if fit_notes:
+                            st.markdown("**📋 Suitability Rationale**")
+                            rc1, rc2 = st.columns(2)
+                            with rc1:
+                                if fit_notes.get("functional"):
+                                    st.caption(f"🎯 **Functional**: {fit_notes['functional']}")
+                                if fit_notes.get("seniority"):
+                                    st.caption(f"📈 **Seniority**: {fit_notes['seniority']}")
+                            with rc2:
+                                if fit_notes.get("location_auth"):
+                                    st.caption(f"🌍 **Location & Auth**: {fit_notes['location_auth']}")
+                                if fit_notes.get("evidence"):
+                                    st.caption(f"🛡️ **Evidence**: {fit_notes['evidence']}")
+                            st.divider()
 
-                            result = st.session_state.get(cmp_key)
-                            if result:
-                                _ats = result["ats"]
-                                _fit = result.get("fit")
+                        if barriers:
+                            st.warning("⚠️ **Suitability Barriers:**")
+                            for b in barriers:
+                                st.caption(f"• {b}")
+                            st.divider()
 
-                                # Score row
-                                sc1, sc2, sc3, sc4 = st.columns(4)
-                                sc1.metric("ATS Readiness", f"{_ats.readiness:.0f}%",
-                                           help="Overall keyword match score against your resume")
-                                sc2.metric("Critical Keywords", f"{_ats.critical_coverage:.0f}%")
-                                if _fit:
-                                    sc3.metric("Strategic Fit", f"{_fit.weighted_score:.0f}/100")
-                                    sc4.metric("Pursuit Tier", _tier_badge(_fit.tier.value))
-                                else:
-                                    sc3.metric("Important Keywords", f"{_ats.important_coverage:.0f}%")
-                                    sc4.metric("Total Keywords", len(_ats.matches))
+                        kc1, kc2 = st.columns(2)
+                        with kc1:
+                            if matched_kw:
+                                st.markdown(f"**✅ Matched Strengths ({len(matched_kw)})**")
+                                st.caption(", ".join(matched_kw[:30]))
+                            else:
+                                st.caption("No strong keyword matches recorded.")
+                        with kc2:
+                            if missing_supp:
+                                st.markdown(f"**➕ Addressable via Evidence ({len(missing_supp)})**")
+                                st.caption(", ".join(missing_supp[:20]))
+                            if missing_unsupp:
+                                st.markdown(f"**❌ Gaps ({len(missing_unsupp)})**")
+                                st.caption(", ".join(missing_unsupp[:20]))
 
-                                st.divider()
-
-                                # Keyword breakdown
-                                keep   = [m for m in _ats.matches if m.action.value == "KEEP"]
-                                add    = [m for m in _ats.matches if m.action.value == "ADD"]
-                                strengthen = [m for m in _ats.matches if m.action.value == "STRENGTHEN"]
-                                gap    = [m for m in _ats.matches if m.action.value == "DO_NOT_ADD"]
-
-                                kc1, kc2 = st.columns(2)
-                                with kc1:
-                                    if keep:
-                                        st.markdown(f"**✅ Already in your resume ({len(keep)})**")
-                                        st.caption(", ".join(m.keyword for m in keep[:25]))
-                                    if strengthen:
-                                        st.markdown(f"**💪 Present but could be stronger ({len(strengthen)})**")
-                                        st.caption(", ".join(m.keyword for m in strengthen[:15]))
-                                with kc2:
-                                    if add:
-                                        st.markdown(f"**➕ Missing — but evidence supports adding ({len(add)})**")
-                                        for m in add[:12]:
-                                            ev_hint = f" · *ev: {m.evidence_ids[0]}*" if m.evidence_ids else ""
-                                            st.caption(f"• **{m.keyword}**{ev_hint}")
-                                    if gap:
-                                        st.markdown(f"**❌ Gap — missing & no evidence ({len(gap)})**")
-                                        st.caption(", ".join(m.keyword for m in gap[:15]))
-
-                                # Barriers
-                                if _fit and _fit.barriers:
-                                    st.divider()
-                                    st.warning("⚠️ **Hard Gate barriers that block this role:**")
-                                    for b in _fit.barriers:
-                                        st.caption(f"• {b}")
-
-                                # Action buttons
-                                st.divider()
-                                act1, act2 = st.columns(2)
-                                with act1:
-                                    if st.button("✨ Tailor Resume for This Job", key=f"tailor_{cmp_key}",
-                                                 use_container_width=True,
-                                                 help="Auto-run full analysis and jump to Tailored Resume Draft"):
-                                        st.session_state["form_company"] = job.get("company", "")
-                                        st.session_state["form_title"] = job.get("title", "")
-                                        st.session_state["form_location"] = job.get("location", "")
-                                        st.session_state["form_url"] = job.get("url", "")
-                                        st.session_state["form_jd"] = desc[:8000]
-                                        st.session_state["auto_analyze"] = True
-                                        st.session_state["nav_screen"] = "🔍 Analyze Job"
-                                        st.rerun()
-                                with act2:
-                                    with st.expander("📄 View Job Description"):
-                                        st.markdown(desc[:3000] + ("…" if len(desc) > 3000 else ""))
+                        if desc:
+                            with st.expander("📄 View Job Description Preview"):
+                                st.markdown(desc[:3000] + ("…" if len(desc) > 3000 else ""))
 
                     st.divider()
 
