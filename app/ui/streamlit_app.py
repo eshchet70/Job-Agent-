@@ -1014,14 +1014,39 @@ with st.sidebar:
     st.markdown("### 🎯 Job Search Agent")
     st.caption("Evidence-grounded · Human-in-the-loop")
     st.divider()
-    nav_screens = ["🔭 Scout", "🎯 Coordinator", "🔍 Analyze Job", "📄 Master Resume", "👥 People & Outreach", "📋 Application Record", "📊 Dashboard"]
+    nav_screens = [
+        "🔭 Scout",
+        "🎯 Coordinator",
+        "👥 People & Outreach",
+        "📋 Application Record",
+        "📊 Dashboard",
+        "🔍 Analyze Job",
+        "📄 Master Resume",
+    ]
     target_screen = st.session_state.pop("nav_screen", None)
     if target_screen and target_screen in nav_screens:
         st.session_state["nav_screen_radio"] = target_screen
 
+    def _format_nav(item: str) -> str:
+        if item in ("🔍 Analyze Job", "📄 Master Resume"):
+            return f"📎 {item} (Appendix)"
+        return item
+
+    nav_captions = [
+        "Discovery & suitability",
+        "Pipeline orchestration",
+        "Hiring team & messaging",
+        "Submission tracker",
+        "Funnel & metrics",
+        "Appendix · Supporting tool",
+        "Appendix · Supporting tool",
+    ]
+
     screen = st.radio(
         "Navigation",
         nav_screens,
+        format_func=_format_nav,
+        captions=nav_captions,
         label_visibility="collapsed",
         key="nav_screen_radio",
     )
@@ -1134,7 +1159,7 @@ if screen == "🔍 Analyze Job":
     with head_col1:
         st.title("🔍 Analyze Job")
         st.caption(
-            "In-depth job qualification and fit analysis (Parse → Hard Gates → Strategic Fit → ATS Keywords → Evidence Map). "
+            "**Appendix · Supporting Tool** — In-depth job qualification and fit analysis (Parse → Hard Gates → Strategic Fit → ATS Keywords → Evidence Map). "
             "Connected directly to your **🎯 Coordinator** pipeline to approve, skip, or queue roles."
         )
     with head_col2:
@@ -2238,7 +2263,7 @@ elif screen == "📊 Dashboard":
 elif screen == "📄 Master Resume":
     st.title("📄 Master Resume")
     st.caption(
-        "Manage your canonical Master Resume. The ATS engine and Evidence Mapper evaluate all job descriptions against this version."
+        "**Appendix · Supporting Tool** — Manage your canonical Master Resume. The ATS engine and Evidence Mapper evaluate all job descriptions against this version."
     )
 
     current_resume = load_master_resume()
