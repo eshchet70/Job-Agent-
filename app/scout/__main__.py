@@ -59,10 +59,34 @@ def _check() -> int:
     return 1 if bad else 0
 
 
+def _llm_check() -> int:
+    from dotenv import load_dotenv
+    load_dotenv()
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-5-5")
+    if not api_key or not api_key.strip():
+        print("❌ ANTHROPIC_API_KEY is not set in .env")
+        return 1
+    print(f"Testing Anthropic Claude connection using model '{model}'...")
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key.strip())
+        resp = client.messages.create(
+            model=model,
+            max_tokens=10,
+            messages=[{"role": "user", "content": "ping"}],
+        )
+        print(f"✅ Success: Claude model '{model}' responded successfully.")
+        return 0
+    except Exception as exc:
+        print(f"❌ Anthropic API call failed: {exc}")
+        return 1
+
+
 def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     parser = argparse.ArgumentParser(prog="python -m app.scout")
-    parser.add_argument("command", choices=["run", "resumes", "dashboard", "daily", "check"])
+    parser.add_argument("command", choices=["run", "resumes", "dashboard", "daily", "check", "llm-check"])
     args = parser.parse_args(argv)
     if args.command == "run":
         _run()
@@ -72,6 +96,8 @@ def main(argv: list[str] | None = None) -> int:
         _dashboard()
     elif args.command == "check":
         return _check()
+    elif args.command == "llm-check":
+        return _llm_check()
     elif args.command == "daily":
         _run()
         _resumes()

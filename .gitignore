@@ -62,3 +62,7 @@ data/email_config.json
 # Daily scout outputs (resumes are delivered as private workflow artifacts)
 output/
 site/
+
+# User personal trackers
+Job Tracker/
+
