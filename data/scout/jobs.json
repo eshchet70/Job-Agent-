@@ -208,12 +208,11 @@
    "posted_date": "2026-08-20",
    "first_seen": "2026-10-01",
    "last_seen": "2026-10-02",
-   "status": "open",
+   "status": "closed",
    "flags": [
     "location_unverified"
    ],
    "compensation": null,
-   "description": "Role Description \n\n Dropbox is entering an exciting new chapter in how we support, retain, and grow our customers. \n\n As part of our evolving go-to-market strategy, Customer Experience & Success (CXS) will assume ownership of commercial renewals, creating a unique opportunity to rethink how we drive customer retention and long-term recurring revenue. We're looking for an experienced strategy and operations leader to help shape Dropbox's retention strategy, modernize our renewal operating model, and build the capabilities that enable customers to realize ongoing value from Dropbox. \n\n As the Renewals Strategy Principal Program Manager , you'll lead the strategy, operating model, and execution behind this transformation. You'll partner closely with Customer Success, Sales, Revenue Operations, Finance, Product, Legal, and Engineering to develop retention strategies, design scalable programs, and build the playbooks, operating rhythms, and automation that enable Customer Success to successfully own a significant renewal business. \n\n This is a builder role for someone who thrives in ambiguity, enjoys designing scalable business capabilities, and is passionate about leveraging AI, automation, and data to improve customer retention and operational excellence. You'll identify new opportunities to reduce churn, increase customer engagement, simplify workflows, and drive measurable business outcomes while helping establish Customer Success as a world-class retention organization. \n\n Over time, you'll help shape Dropbox's long-term customer lifecycle strategy, evolving our approach to customer retention across direct, channel, and self-serve motions. \n\n Responsibilities \n\n• Lead Dropbox's retention strategy for commercial customers, identifying opportunities to improve customer outcomes and recurring revenue. \n\n• Develop scalable retention programs, renewal strategies, and customer lifecycle initiatives that increase customer health, product adoption, and renewal rates. \n\n• Partner with Customer Success and Sales leadership to evolve the renewal operating model as Customer Success assumes ownership of commercial renewals. \n\n• Design playbooks, operating rhythms, and best practices that enable Customer Success to proactively identify and mitigate renewal risk. \n\n• Identify opportunities to leverage AI, automation, and technology to improve customer engagement, reduce manual work, and increase operational efficiency. \n\n• Partner with Product, Sales, Revenue Operations, Finance, Legal, and Engineering to improve the end-to-end customer renewal experience. \n\n• Establish data-driven frameworks for renewal forecasting, customer health, retention analytics, and executive reporting. \n\n• Analyze customer behavior and renewal performance to identify trends, recommend strategic investments, and continuously improve retention outcomes. \n\n• Lead cross-functional initiatives that improve customer lifecycle management and drive long-term recurring revenue growth. \n\n• Influence senior leaders across the business to align on customer retention priorities and operational improvements. \n\n Requirements \n\n• 10+ years of experience in SaaS strategy, renewals, customer lifecycle management, customer success, revenue operations, or commercial operations. \n\n• Experience designing, building, or scaling renewal, retention, or recurring revenue programs within a B2B SaaS environment. \n\n• Deep expertise in renewal strategy, forecasting, customer retention, and recurring revenue operations. \n\n• Experience building scalable operating models, processes, playbooks, governance, or customer programs that improved business performance. \n\n• Experience leading new initiatives or organizational transformations from concept through operational execution. \n\n• Proven ability to lead complex cross-functional programs and influence senior stakeholders without direct authority. \n\n• Strong strategic thinking with a demonstrated ability to translate strategy into operational execution. \n\n• Excellent executive communication and stakeholder management skills. \n\n• Strong analytical skills with experience using data to drive operational decisions, prioritize investments, and measure business outcomes. \n\n Preferred Qualifications\n\n• Experience working within or alongside Customer Success organizations \n\n• Experience supporting multi-product SaaS portfolios \n\n• Experience implementing renewal and retention playbooks or lifecycle revenue frameworks \n\n• Exposure to evolving SaaS pricing models such as usage-based or hybrid pricing \n\n Durable Skills \n\n AI fluency means using these tools to amplify human judgment, not replace it. We believe people with these skills will thrive as work and technology continue to evolve: \n\n• Awareness: U nderstand yourself and others . \n\n• Judgment: E valuat e information and mak e decisions in complex situations . \n\n• Adaptability: L earn, adjust, and stay effective through change . \n\n• Connection: C ommunicat e , collaborat e , and build trust . \n\n To learn more about why these skills matter and what the data shows about thriving through change, read this blog post from our Chief People Officer, Melanie Rosenwasser. \n\n Compensation \n US Zone 1 \n\n This role is not available in Zone 1 \n US Zone 2 $259,300 — $350,900 USD US Zone 3 $230,500 — $311,900 USD",
    "role_family": "Technical Program Management",
    "seniority": "principal",
    "fit_score": 81.2,
@@ -242,7 +241,8 @@
     "seniority": "Seniority band 'principal' vs candidate senior/lead/director level.",
     "location_auth": "Role in Toronto / Canada / Remote — strong location match.",
     "evidence": "5 requirement(s) backed by evidence library items: BELL-TCO-01, BELL-PORTFOLIO-01, BELL-PAYMENTS-01."
-   }
+   },
+   "closed_on": "2026-10-02"
   },
   "greenhouse:dropbox:8234201": {
    "id": "greenhouse:dropbox:8234201",
@@ -764,6 +764,51 @@
     "Figma": 164,
     "Robinhood": 161,
     "Palantir": 320,
+    "Spotify": 80
+   }
+  },
+  {
+   "started_at": "2026-10-02T16:23:06+00:00",
+   "fetched": 6526,
+   "passed_filter": 13,
+   "new": 0,
+   "updated": 12,
+   "closed": 1,
+   "new_tier1": 0,
+   "new_tier2": 0,
+   "source_errors": [
+    {
+     "source": "adzuna",
+     "company": "—",
+     "error": "not configured (set ADZUNA_APP_ID / ADZUNA_APP_KEY)"
+    }
+   ],
+   "sources": {
+    "Wealthsimple": 44,
+    "Cohere": 136,
+    "1Password": 67,
+    "KOHO": 9,
+    "Ramp": 158,
+    "Notion": 134,
+    "OpenAI": 829,
+    "Faire": 79,
+    "Instacart": 127,
+    "Okta": 368,
+    "Scale AI": 191,
+    "Coinbase": 222,
+    "Databricks": 879,
+    "Tenstorrent": 129,
+    "Anthropic": 639,
+    "Stripe": 711,
+    "Airbnb": 150,
+    "Dropbox": 39,
+    "Pinterest": 169,
+    "Lyft": 191,
+    "Cloudflare": 403,
+    "Twilio": 128,
+    "Figma": 164,
+    "Robinhood": 161,
+    "Palantir": 319,
     "Spotify": 80
    }
   }
