@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-10-02T19:22:55+00:00",
+  "updated_at": "2026-10-02T19:38:13+00:00",
   "entries": {
     "ashby:cohere:41cb2a12-e33a-4368-a9f8-0ae0d19c023e": {
       "id": "ashby:cohere:41cb2a12-e33a-4368-a9f8-0ae0d19c023e",
@@ -104,7 +104,7 @@
     },
     "greenhouse:dropbox:8234201": {
       "id": "greenhouse:dropbox:8234201",
-      "status": "discovered",
+      "status": "skipped",
       "company": "Dropbox",
       "title": "Senior Program Manager,  Employee Experience",
       "url": "https://jobs.dropbox.com/listing/8234201?gh_jid=8234201",
@@ -127,7 +127,9 @@
         "automation"
       ],
       "missing_supported": [],
-      "added_at": "2026-10-02T04:14:35+00:00"
+      "added_at": "2026-10-02T04:14:35+00:00",
+      "skipped_at": "2026-10-02T19:38:13+00:00",
+      "skip_reason": "Skipped by user"
     },
     "greenhouse:figma:6020719004": {
       "id": "greenhouse:figma:6020719004",

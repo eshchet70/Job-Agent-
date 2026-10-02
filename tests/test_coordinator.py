@@ -77,3 +77,28 @@ def test_job_queue_in_memory(tmp_path: Path):
     assert retrieved is not None
     assert retrieved.company == "TestCo"
     assert retrieved.location == ""
+
+
+def test_job_queue_find_entry(tmp_path: Path):
+    queue_file = tmp_path / "queue.json"
+    queue = JobQueue(path=queue_file)
+
+    entry = QueueEntry({
+        "id": "job_1",
+        "company": "Amazon",
+        "title": "Principal Technical Program Manager",
+        "url": "https://amazon.jobs/en/jobs/123/",
+    })
+    queue.add(entry)
+
+    # Find by ID
+    assert queue.find_entry(job_id="job_1") is not None
+    # Find by exact URL (with or without trailing slash)
+    assert queue.find_entry(url="https://amazon.jobs/en/jobs/123") is not None
+    # Find by Company and Title (case-insensitive)
+    found = queue.find_entry(company="amazon", title="principal technical program manager")
+    assert found is not None
+    assert found.id == "job_1"
+
+    # Not found
+    assert queue.find_entry(company="Google", title="Engineer") is None

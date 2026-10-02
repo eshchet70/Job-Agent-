@@ -340,6 +340,60 @@
     "evidence": "4 requirement(s) backed by evidence library items: BELL-TCO-01, BELL-PORTFOLIO-01, BELL-PAYMENTS-01."
    }
   },
+  "greenhouse:instacart:8249753": {
+   "id": "greenhouse:instacart:8249753",
+   "identity": "instacart|senior design program manager ii",
+   "source": "board",
+   "source_key": "greenhouse:instacart",
+   "portal": "Greenhouse",
+   "company": "Instacart",
+   "title": "Senior Design Program Manager II",
+   "location": "Canada - Remote (ON, AB, BC, or NS Only)",
+   "country": "Canada",
+   "work_model": "remote",
+   "url": "https://instacart.careers/job/?gh_jid=8249753",
+   "posted_date": "2026-10-02",
+   "first_seen": "2026-10-02",
+   "last_seen": "2026-10-02",
+   "status": "open",
+   "flags": [],
+   "compensation": null,
+   "description": "We're transforming the grocery industry \n\n At Instacart, we invite the world to share love through food because we believe everyone should have access to the food they love and more time to enjoy it together. Where others see a simple need for grocery delivery, we see exciting complexity and endless opportunity to serve the varied needs of our community. We work to deliver an essential service that customers rely on to get their groceries and household goods, while also offering safe and flexible earnings opportunities to Instacart Personal Shoppers. \n\n Instacart has become a lifeline for millions of people, and we’re building the team to help push our shopping cart forward. If you’re ready to do the best work of your life, come join our table.\n\n Instacart is a Flex First team \n\n There’s no one-size fits all approach to how we do our best work. Our employees have the flexibility to choose where they do their best work—whether it’s from home, an office, or your favorite coffee shop—while staying connected and building community through regular in-person events. Learn more about our flexible approach to where we work. \n Overview\n\n Instacart is on a mission to make eating well effortless for everyone and great design is a key ingredient. As a Senior Design Program Manager, you'll drive operational excellence and programmatic execution across the Design organization—building AI-enabled systems, scaling critical processes, and managing the tools and vendor relationships that power our creative work.\n\n This role sits at the intersection of design craft, technical operations, and strategic execution. You'll bring strong design sensibility—whether from product design or design systems—to build scalable programs, automate workflows using AI, and ensure our design team has the infrastructure, tools, and processes to deliver world-class experiences efficiently. You'll work closely with the Instacart Design System (IDS) team, requiring technical fluency to bridge design, engineering, and tooling infrastructure.\n\n About the Role\n\n You'll own end-to-end program execution for high-visibility design initiatives while building the operational backbone that enables the Design organization to scale. You'll leverage AI to automate workflows, manage critical vendor relationships (Figma, design tooling, contractors), and create repeatable systems that translate our design, creative and product strategy into shipped experiences.\n\n You'll report to the Director of Technical Program Management and work closely with Design and Product Leadership, Marketing, Engineering, and several other cross-functional partners to deliver outcomes that matter.\n\n About the Job\n\n• Programmatic Execution: Drive end-to-end delivery of complex, multi-quarter design initiatives across Design, Product, Engineering, Marketing, Legal, Business Development and other cross-functional teams. Enable seamless cross-functional collaboration and predictable program outcomes.\n\n• AI Enablement: Build and deploy AI-enabled workflows that automate program management tasks—status reporting, resource tracking, documentation synthesis, and stakeholder communication. Champion AI fluency in Design to accelerate design-first thinking and increase operational efficiency.\n\n• Operations & Vendor Management: Own strategic vendor relationships and contract management for design tooling (Figma, prototyping, asset management, collaboration platforms). Negotiate contracts, optimize licensing spend, and ensure infrastructure scales with growth. Manage contractor/agency relationships and partner with Finance, Legal, and IT on compliance and cost efficiency.\n\n• Systems & Tooling: Champion team health through capacity planning, roadmapping, and resource allocation. Build operational metrics and tooling integrations that create seamless workflows across platforms.\n\n• Design Systems & Cross-Functional Partnership: Partner with the Instacart Design System (IDS) team to align programs with system evolution and component adoption. Drive governance programs that scale IDS across product teams. Act as strategic partner to Product, Engineering, Marketing, Legal, and Operations. Translate design strategy into executable programs with clear visibility into progress and outcomes. Facilitate planning cycles and milestone reviews where design intersects with product roadmaps.\n\n• Design Craft Integration: Apply design thinking and product sense to program design—understanding user needs, designing operational experiences, and iterating based on feedback. Build systems that empower designers and product managers to do their best work while balancing flexibility with consistency, creative exploration with scalable patterns, and craft excellence with business impact.\n\n About You\n\n Minimum Qualifications \n\n• 6+ years in program management and design operations within design or product organizations, with deep experience driving operational excellence and culture for design and product teams.\n\n• Strong product sense and design craft sensibility, with well-developed methods and tools for driving fluid programs forward into the market. \n\n• Experience with all stages of the product development lifecycle, launching products end-to-end.\n\n• (component libraries, tokens, documentation, cross-platform patterns)\n\n• Technical fluency to collaborate with design system and engineering teams—understanding system architecture, component APIs, design-to-code workflows, and technical constraints\n\n• Proven track record driving complex, cross-functional programs from 0→1 and scaling operational systems in fast-paced environments\n\n• AI fluency: Experience leveraging AI tools (LLMs, automation platforms) to drive efficiency and scale programs\n\n• Vendor/contract management experience: negotiating software contracts, managing relationships, optimizing spend, ensuring compliance\n\n• Deep knowledge of design and program management tooling ecosystems (Figma, Linear, Jira, Dovetail, asset management, prototyping tools)\n\n• Ability to drive organizational change and influence cross-functional partners—bringing clarity to complexity\n\n• Excellent communication and stakeholder management skills; comfortable presenting to executive leadership\n\n Preferred Qualifications \n\n• Design systems expertise: building/scaling systems, managing component libraries, defining tokens, driving adoption programs\n\n• Experience building AI-powered workflows for creative operations or design tooling integrations\n\n• Success translating leadership vision into actionable roadmaps and operating models\n\n• Experience in hybrid/embedded team models with deep cross-functional partnership\n\n• Comfort balancing hands-on execution with strategic oversight\n\n• Track record using data and storytelling to influence leadership and secure buy-in for operational investments\n\n #LI-Remote\n Instacart provides highly market-competitive compensation and benefits in each location where our employees work. This role is remote and the base pay range for a successful candidate is dependent on their permanent work location. Please review our Flex First remote work policy here . Currently, we are only hiring in the following provinces: Ontario, Alberta, British Columbia, and Nova Scotia.\n\n Offers may vary based on many factors, such as candidate experience and skills required for the role. Additionally, this role is eligible for a new hire equity grant as well as annual refresh grants. Please read more about our benefits offerings here .\n\n For Canadian based candidates, the base pay ranges for a successful candidate are listed below.\n CAN $185,000 — $195,000 CAD",
+   "role_family": "Technical Program Management",
+   "seniority": "senior",
+   "fit_score": 87.5,
+   "tier": "tier_1",
+   "ats_readiness": 69.1,
+   "barriers": [],
+   "authorization": "eligible",
+   "matched_keywords": [
+    "technical program management",
+    "roadmap",
+    "stakeholder management",
+    "cross-functional",
+    "safe",
+    "jira",
+    "program manager",
+    "AI",
+    "TCO",
+    "operating model",
+    "senior",
+    "lead",
+    "automation"
+   ],
+   "missing_supported": [],
+   "missing_unsupported": [
+    "capacity planning",
+    "metrics",
+    "director"
+   ],
+   "fit_notes": {
+    "functional": "Role family 'Technical Program Management' aligns well with candidate target families.",
+    "seniority": "Seniority band 'senior' vs candidate senior/lead/director level.",
+    "location_auth": "Role in Toronto / Canada / Remote — strong location match.",
+    "evidence": "7 requirement(s) backed by evidence library items: BELL-TCO-01, BELL-PORTFOLIO-01, BELL-PAYMENTS-01."
+   }
+  },
   "greenhouse:okta:8157043": {
    "id": "greenhouse:okta:8157043",
    "identity": "okta|senior technical program manager",
@@ -810,6 +864,51 @@
     "Robinhood": 161,
     "Palantir": 319,
     "Spotify": 80
+   }
+  },
+  {
+   "started_at": "2026-10-02T19:36:36+00:00",
+   "fetched": 6546,
+   "passed_filter": 15,
+   "new": 1,
+   "updated": 12,
+   "closed": 0,
+   "new_tier1": 1,
+   "new_tier2": 0,
+   "source_errors": [
+    {
+     "source": "adzuna",
+     "company": "—",
+     "error": "not configured (set ADZUNA_APP_ID / ADZUNA_APP_KEY)"
+    }
+   ],
+   "sources": {
+    "Wealthsimple": 44,
+    "Cohere": 136,
+    "1Password": 68,
+    "KOHO": 9,
+    "Ramp": 158,
+    "Notion": 136,
+    "OpenAI": 828,
+    "Faire": 79,
+    "Instacart": 129,
+    "Okta": 370,
+    "Scale AI": 192,
+    "Coinbase": 224,
+    "Databricks": 884,
+    "Tenstorrent": 129,
+    "Anthropic": 638,
+    "Stripe": 712,
+    "Airbnb": 152,
+    "Dropbox": 40,
+    "Pinterest": 168,
+    "Lyft": 190,
+    "Cloudflare": 404,
+    "Twilio": 130,
+    "Figma": 163,
+    "Robinhood": 162,
+    "Palantir": 319,
+    "Spotify": 82
    }
   }
  ]

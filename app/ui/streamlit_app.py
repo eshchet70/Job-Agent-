@@ -580,6 +580,76 @@ def _render_brief(brief):
     if brief.next_action:
         st.info(f"📌 **Next Action:** {brief.next_action}")
 
+    # ── Coordinator Pipeline Connection ──────────────────────────────────────
+    from app.coordinator import CoordinatorAgent, JobStatus
+    coord_agent = CoordinatorAgent()
+    c_company = (job.company or "").strip()
+    c_title = (job.title or "").strip()
+    c_url = ((getattr(job, "official_url", "") or "").strip() or (getattr(job, "source_url", "") or "").strip())
+    active_cid = st.session_state.get("coordinator_active_job_id")
+
+    coord_entry = coord_agent.queue.find_entry(
+        job_id=active_cid,
+        company=c_company,
+        title=c_title,
+        url=c_url,
+    )
+
+    with st.container(border=True):
+        if coord_entry:
+            q_status = coord_entry.status
+            key_suffix = coord_entry.id
+            if q_status == JobStatus.discovered:
+                c_head, c_btn1, c_btn2, c_btn3 = st.columns([3, 1.8, 1.2, 1.5])
+                with c_head:
+                    st.markdown("**🎯 Coordinator Pipeline: Gate 1 Action**")
+                    st.caption("Status: **Awaiting Approval**. Approve this role to proceed with hiring contacts & resume tailoring:")
+                with c_btn1:
+                    if st.button("✅ Approve for Tailoring", key=f"brief_coord_appr_{key_suffix}", type="primary", use_container_width=True):
+                        coord_agent.approve_job(coord_entry.id)
+                        st.toast(f"Approved {c_company} in Coordinator!", icon="✅")
+                        st.session_state["nav_screen"] = "🎯 Coordinator"
+                        st.rerun()
+                with c_btn2:
+                    if st.button("⏭ Skip Job", key=f"brief_coord_skip_{key_suffix}", use_container_width=True):
+                        coord_agent.skip_job(coord_entry.id, "Skipped from Job Analysis")
+                        st.toast(f"Skipped {c_company} in Coordinator", icon="⏭")
+                        st.session_state["nav_screen"] = "🎯 Coordinator"
+                        st.rerun()
+                with c_btn3:
+                    if st.button("🎯 Open in Coordinator", key=f"brief_coord_goto_{key_suffix}", use_container_width=True):
+                        st.session_state["nav_screen"] = "🎯 Coordinator"
+                        st.rerun()
+            elif q_status == JobStatus.approved:
+                c_head, c_btn = st.columns([4, 2])
+                with c_head:
+                    st.markdown(f"**🎯 Coordinator Status:** ✅ **Approved** (Ready for hiring contacts & resume tailoring)")
+                with c_btn:
+                    if st.button("🎯 Open in Coordinator Pipeline", key=f"brief_coord_appr_goto_{key_suffix}", type="primary", use_container_width=True):
+                        st.session_state["nav_screen"] = "🎯 Coordinator"
+                        st.rerun()
+            else:
+                c_head, c_btn = st.columns([4, 2])
+                with c_head:
+                    st.markdown(f"**🎯 Coordinator Status:** ℹ️ **{q_status.value.replace('_', ' ').title()}**")
+                with c_btn:
+                    if st.button("🎯 View in Coordinator Pipeline", key=f"brief_coord_view_goto_{key_suffix}", use_container_width=True):
+                        st.session_state["nav_screen"] = "🎯 Coordinator"
+                        st.rerun()
+        else:
+            c_add1, c_add2 = st.columns([4, 2])
+            with c_add1:
+                st.markdown("**🎯 Coordinator Pipeline Connection**")
+                st.caption("This job is not yet in your Coordinator queue. Add it to enable human approval, hiring contacts discovery, and automated resume tailoring.")
+            with c_add2:
+                key_suffix = abs(hash(c_company + c_title)) % 1000000
+                if st.button("➕ Add to Coordinator Queue", key=f"brief_coord_add_{key_suffix}", type="primary", use_container_width=True):
+                    new_e = coord_agent.queue.upsert_from_brief(brief)
+                    coord_agent.save()
+                    st.toast(f"Added {c_company} to Coordinator queue!", icon="🎯")
+                    st.session_state["coordinator_active_job_id"] = new_e.id
+                    st.rerun()
+
     # ── Application & Company Career Site Access ──────────────────────────────
     import urllib.parse
     company_name = (job.company or "").strip()
@@ -1064,8 +1134,8 @@ if screen == "🔍 Analyze Job":
     with head_col1:
         st.title("🔍 Analyze Job")
         st.caption(
-            "Paste a job description to run the full qualification pipeline: "
-            "Parse → Hard Gates → Strategic Fit → ATS → Evidence Map → Persist"
+            "In-depth job qualification and fit analysis (Parse → Hard Gates → Strategic Fit → ATS Keywords → Evidence Map). "
+            "Connected directly to your **🎯 Coordinator** pipeline to approve, skip, or queue roles."
         )
     with head_col2:
         st.write("")
@@ -2626,12 +2696,15 @@ elif screen == "🎯 Coordinator":
     # ═══════════════════════════════════════════════════════════════════
     if pending:
         st.subheader(f"🔵 Gate 1 — Approve for Resume Tailoring ({len(pending)} jobs)")
-        st.caption("Review each match and decide whether to tailor your resume for it.")
+        st.caption("Analyze suitability and review match details before deciding whether to approve for resume tailoring or skip.")
 
         for entry in sorted(pending, key=lambda e: (-e.fit_score)):
             tier_badge = {"tier_1": "🟢 Tier 1", "tier_2": "🟡 Tier 2", "tier_3": "🟠 Tier 3"}.get(entry.tier, entry.tier)
+            analysis_open_key = f"coord_show_analysis_{entry.id}"
+            is_analysis_open = st.session_state.get(analysis_open_key, False)
+
             with st.container(border=True):
-                hc1, hc2, hc3 = st.columns([5, 2, 3])
+                hc1, hc2, hc3 = st.columns([4.2, 1.8, 4.0])
                 with hc1:
                     st.markdown(f"**{entry.company} — {entry.title}**")
                     loc = getattr(entry, "location", "") or "Unknown"
@@ -2640,28 +2713,76 @@ elif screen == "🎯 Coordinator":
                     st.caption(f"📍 {loc}  ·  Fit: {fit:.0f}/100  ·  ATS: {ats_r:.0f}%")
                 with hc2:
                     st.markdown(f"**{tier_badge}**")
+                    if entry.url:
+                        st.markdown(
+                            f'<a href="{entry.url}" target="_blank" style="font-size:0.82rem">🔗 View Posting</a>',
+                            unsafe_allow_html=True,
+                        )
                 with hc3:
-                    bc1, bc2 = st.columns(2)
+                    bc1, bc2, bc3 = st.columns([1.3, 1.1, 0.9])
                     with bc1:
-                        if st.button("✅ Approve", key=f"approve_{entry.id}", use_container_width=True, type="primary"):
-                            coord.approve_job(entry.id)
+                        analyze_btn_label = "Hide Analysis" if is_analysis_open else "🔍 Analyze Job"
+                        if st.button(analyze_btn_label, key=f"btn_analyze_{entry.id}", use_container_width=True,
+                                     help="Run deep qualification analysis (Strategic Fit, ATS Keywords, Evidence Mapping) before approving"):
+                            st.session_state[analysis_open_key] = not is_analysis_open
                             st.rerun()
                     with bc2:
-                        if st.button("⏭ Skip", key=f"skip_{entry.id}", use_container_width=True):
+                        if st.button("✅ Approve", key=f"approve_{entry.id}", use_container_width=True, type="primary",
+                                     help="Approve for Contacts verification and Resume tailoring"):
+                            coord.approve_job(entry.id)
+                            st.session_state.pop(analysis_open_key, None)
+                            st.rerun()
+                    with bc3:
+                        if st.button("⏭ Skip", key=f"skip_{entry.id}", use_container_width=True,
+                                     help="Skip this job"):
                             coord.skip_job(entry.id, "Skipped by user")
+                            st.session_state.pop(analysis_open_key, None)
                             st.rerun()
 
-                m_kw = getattr(entry, "matched_keywords", [])
-                e_notes = getattr(entry, "notes", "")
-                if m_kw or e_notes:
-                    with st.expander("Details"):
-                        if m_kw:
-                            st.caption("✅ Keywords already matched: " + ", ".join(m_kw[:8]))
-                        if entry.url:
-                            st.markdown(
-                                f'<a href="{entry.url}" target="_blank" style="font-size:0.85rem">🔗 View Job Posting</a>',
-                                unsafe_allow_html=True,
-                            )
+                # If analysis is opened by the user
+                if is_analysis_open:
+                    st.divider()
+                    jd_text = coord.get_jd(entry.id)
+                    brief_cache_key = f"brief_cache_{entry.id}"
+                    brief = st.session_state.get(brief_cache_key)
+
+                    if not brief:
+                        dup_id = repo.find_duplicate_job(entry.company, entry.title)
+                        if dup_id:
+                            brief = repo.get_brief_for_job(dup_id)
+                        if not brief and jd_text:
+                            with st.spinner(f"Running full qualification analysis for {entry.company}…"):
+                                try:
+                                    brief = process_job(
+                                        jd_text=jd_text,
+                                        company=entry.company,
+                                        title=entry.title,
+                                        location=getattr(entry, "location", None),
+                                        url=entry.url or None,
+                                    )
+                                    st.session_state[brief_cache_key] = brief
+                                except Exception as e:
+                                    st.error(f"Analysis failed: {e}")
+
+                    if brief:
+                        _render_brief(brief)
+                    elif not jd_text:
+                        st.warning("No full job description found in Scout store. You can open the Analyze Job screen to paste the JD.")
+                        if st.button("📝 Open Analyze Job Screen to Paste JD", key=f"paste_jd_{entry.id}"):
+                            st.session_state["form_company"] = entry.company
+                            st.session_state["form_title"] = entry.title
+                            st.session_state["form_location"] = getattr(entry, "location", "")
+                            st.session_state["form_url"] = entry.url or ""
+                            st.session_state["coordinator_active_job_id"] = entry.id
+                            st.session_state["nav_screen"] = "🔍 Analyze Job"
+                            st.rerun()
+                else:
+                    m_kw = getattr(entry, "matched_keywords", [])
+                    e_notes = getattr(entry, "notes", "")
+                    if m_kw or e_notes:
+                        with st.expander("Quick Details"):
+                            if m_kw:
+                                st.caption("✅ Keywords already matched: " + ", ".join(m_kw[:8]))
         st.divider()
 
     # ═══════════════════════════════════════════════════════════════════

@@ -345,6 +345,16 @@ class CoordinatorAgent:
     # Internal helpers
     # ─────────────────────────────────────────────────────────────────────
 
+    def get_jd(self, job_id: str) -> str:
+        """Fetch full JD for a job from Scout store or queue description."""
+        jd = self._get_jd(job_id)
+        if jd:
+            return jd
+        entry = self.queue.get(job_id)
+        if entry:
+            return getattr(entry, "description", "")
+        return ""
+
     def _get_jd(self, job_id: str) -> str:
         """Fetch full JD from Scout store by job_id."""
         if not SCOUT_STORE_PATH.exists():

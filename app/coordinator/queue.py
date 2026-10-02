@@ -253,3 +253,63 @@ class JobQueue:
         })
         self._entries[job_id] = entry.as_dict()
         return True
+
+    def find_entry(
+        self,
+        job_id: Optional[str] = None,
+        company: Optional[str] = None,
+        title: Optional[str] = None,
+        url: Optional[str] = None,
+    ) -> Optional[QueueEntry]:
+        """Find a queue entry by job_id, url, or company+title match."""
+        if job_id and job_id in self._entries:
+            return QueueEntry(self._entries[job_id])
+        if url and url.strip():
+            clean_url = url.strip().rstrip("/")
+            for d in self._entries.values():
+                d_url = (d.get("url") or "").strip().rstrip("/")
+                if d_url and d_url == clean_url:
+                    return QueueEntry(d)
+        if company and title:
+            c_norm = company.strip().lower()
+            t_norm = title.strip().lower()
+            for d in self._entries.values():
+                if (d.get("company") or "").strip().lower() == c_norm and (d.get("title") or "").strip().lower() == t_norm:
+                    return QueueEntry(d)
+        return None
+
+    def upsert_from_brief(self, brief: Any) -> QueueEntry:
+        """Add an analyzed job from ApplicationBrief to the coordinator queue."""
+        import re
+        job = brief.job
+        raw_name = f"{job.company}_{job.title}"
+        safe_id = f"manual:{re.sub(r'[^\\w\\-]', '_', raw_name)[:60]}"
+        existing = self.find_entry(
+            job_id=safe_id,
+            company=job.company,
+            title=job.title,
+            url=job.official_url or job.source_url,
+        )
+        if existing:
+            return existing
+
+        tier = brief.fit.tier.value if getattr(brief, "fit", None) else "tier_2"
+        fit_score = brief.fit.weighted_score if getattr(brief, "fit", None) else 0
+        ats_readiness = brief.ats.readiness if getattr(brief, "ats", None) else 0
+
+        entry = QueueEntry({
+            "id": safe_id,
+            "status": JobStatus.discovered.value,
+            "company": job.company or "",
+            "title": job.title or "",
+            "url": job.official_url or job.source_url or "",
+            "tier": tier,
+            "fit_score": fit_score,
+            "ats_readiness": ats_readiness,
+            "location": job.location or "",
+            "posted_date": _now()[:10],
+            "description": (job.description or "")[:500],
+            "added_at": _now(),
+        })
+        self._entries[safe_id] = entry.as_dict()
+        return entry
