@@ -2636,6 +2636,11 @@ elif screen == "🔭 Scout":
 # Screen: Coordinator
 # =============================================================================
 elif screen == "🎯 Coordinator":
+    import importlib
+    import app.coordinator.queue
+    import app.coordinator.coordinator
+    importlib.reload(app.coordinator.queue)
+    importlib.reload(app.coordinator.coordinator)
     from app.coordinator import CoordinatorAgent, JobStatus
 
     st.title("🎯 Coordinator")
@@ -2741,8 +2746,22 @@ elif screen == "🎯 Coordinator":
 
                 # If analysis is opened by the user
                 if is_analysis_open:
-                    st.divider()
-                    jd_text = coord.get_jd(entry.id)
+                    # Safe JD extraction
+                    jd_text = ""
+                    if hasattr(coord, "get_jd"):
+                        jd_text = coord.get_jd(entry.id)
+                    elif hasattr(coord, "_get_jd"):
+                        jd_text = coord._get_jd(entry.id)
+                    if not jd_text:
+                        s_store_file = Path(__file__).resolve().parent.parent.parent / "data" / "scout" / "jobs.json"
+                        if s_store_file.exists():
+                            try:
+                                s_data = json.loads(s_store_file.read_text(encoding="utf-8"))
+                                jd_text = s_data.get("jobs", {}).get(entry.id, {}).get("description", "")
+                            except Exception:
+                                pass
+                    if not jd_text:
+                        jd_text = getattr(entry, "description", "")
                     brief_cache_key = f"brief_cache_{entry.id}"
                     brief = st.session_state.get(brief_cache_key)
 
