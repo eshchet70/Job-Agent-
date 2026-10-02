@@ -62,3 +62,8 @@ data/email_config.json
 # Daily scout outputs (resumes are delivered as private workflow artifacts)
 output/
 site/
+
+# Private working files written by the coordinator and agents
+data/tailored/
+data/submissions/
+data/interviews/

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import json
 import re
 from pathlib import Path
 from types import SimpleNamespace as NS
@@ -33,15 +34,20 @@ def faithful_result(master: str) -> dict:
 
 
 class FakeClient:
+    """Stands in for the Anthropic client: returns queued JSON answers as text blocks."""
+
     def __init__(self, writer, audits):
-        self.writer, self.audits, self.calls = list(writer), list(audits), []
+        self.writer, self.audits, self.calls, self.requests = list(writer), list(audits), [], []
         self.messages = self
 
     def create(self, **kw):
-        name = kw["tool_choice"]["name"]
-        self.calls.append(name)
-        data = self.writer.pop(0) if name == "submit_tailored_resume" else {"issues": self.audits.pop(0)}
-        return NS(content=[NS(type="tool_use", input=data)])
+        self.requests.append(kw)
+        schema = kw["output_config"]["format"]["schema"]
+        kind = "audit" if "issues" in schema["properties"] else "writer"
+        self.calls.append(kind)
+        data = self.writer.pop(0) if kind == "writer" else {"issues": self.audits.pop(0)}
+        return NS(content=[NS(type="thinking", thinking="..."), NS(type="text", text=json.dumps(data))],
+                  stop_reason="end_turn")
 
 
 SRC = Sources.load()
@@ -81,7 +87,7 @@ def test_agent_revises_after_failed_checks():
     agent = ResumeAgent(client=FakeClient([bad, GOOD], [[]]), model="test", sources=SRC)
     out = agent.tailor(JOB)
     assert out.status == "ready"
-    assert agent.client.calls == ["submit_tailored_resume", "submit_tailored_resume", "submit_audit"]
+    assert agent.client.calls == ["writer", "writer", "audit"]
 
 
 def test_agent_marks_needs_review_when_auditor_keeps_objecting():
@@ -112,3 +118,27 @@ def test_run_batch_writes_files_and_updates_store(tmp_path: Path):
     names = sorted(p.name for p in (tmp_path / "out").iterdir())
     assert any(n.endswith(".docx") for n in names) and any(n.endswith("_NOTES.md") for n in names)
     assert store.jobs[JOB["id"]]["resume"]["file"].endswith(".docx")
+
+
+def test_requests_use_structured_outputs_not_forced_tools():
+    """Newer Claude models reject forced tool calls and custom temperature on every request."""
+    agent = ResumeAgent(client=FakeClient([GOOD], [[]]), model="test", sources=SRC)
+    agent.tailor(JOB)
+    for req in agent.client.requests:
+        assert "tool_choice" not in req and "tools" not in req and "temperature" not in req
+        fmt = req["output_config"]["format"]
+        assert fmt["type"] == "json_schema" and fmt["schema"]["additionalProperties"] is False
+
+
+def test_candidate_feedback_reaches_the_writer():
+    agent = ResumeAgent(client=FakeClient([GOOD], [[]]), model="test", sources=SRC)
+    agent.tailor(JOB, user_feedback="Lead with portfolio governance")
+    assert "Lead with portfolio governance" in agent.client.requests[0]["messages"][0]["content"]
+
+
+def test_truncated_answer_is_reported_as_error():
+    class Cut(FakeClient):
+        def create(self, **kw):
+            return NS(content=[NS(type="text", text='{"summary": "x')], stop_reason="max_tokens")
+    out = ResumeAgent(client=Cut([], []), model="test", sources=SRC).tailor(JOB)
+    assert out.status == "error" and "cut off" in out.error

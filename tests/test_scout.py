@@ -131,6 +131,55 @@ def test_location_filter_rules():
     assert r.keep and "location_unverified" in r.flags
 
 
+@pytest.mark.parametrize("location,country,keep", [
+    # The four wrong-location matches found in the first real scout runs.
+    ("Remote - US: Select locations", "United States", False),
+    ("Korea", "Other", False),
+    ("San Francisco, CA • New York, NY • United States", "United States", False),
+    # Still accepted
+    ("Toronto, Ontario, Canada", "Canada", True),
+    ("United States; Canada", "Canada", True),
+    ("Austin, Texas, United States; Toronto, Ontario, Canada", "Canada", True),
+    ("Ontario - Remote", "Canada", True),
+    ("Remote - North America", None, True),
+    ("Remote", None, True),
+    # Remote roles tied to a place outside Canada, or a place we cannot identify
+    ("Remote, EMEA", "Other", False),
+    ("London, UK", "Other", False),
+    ("Bucharest", None, False),
+])
+def test_country_guess_and_location_filter(location, country, keep):
+    from app.integrations.ats_boards import guess_country
+    assert guess_country(location) == country
+    job = _pj("x", location, guess_country(location), work_model="remote")
+    assert filters.location_filter(job, load_config()).keep is keep
+
+
+def test_greenhouse_country_comes_from_the_posting_not_the_office_list():
+    board = {"jobs": [{"id": 9, "title": "Senior Technical Program Manager", "absolute_url": "https://gh/9",
+                       "location": {"name": "Remote - US: Select locations"},
+                       "offices": [{"name": "Toronto, Ontario, Canada"}, {"name": "San Francisco, CA"}],
+                       "content": "x"}]}
+    job = fetch_greenhouse("acme", "Acme", _client({"/boards/acme/": board}))[0]
+    assert job.country == "United States"
+    assert not filters.prefilter(job, load_config()).keep
+
+
+def test_stored_job_that_now_fails_filters_is_retired_with_reason(tmp_path: Path):
+    store = JobStore(path=tmp_path / "jobs.json")
+    store.jobs["greenhouse:acme:3"] = {"id": "greenhouse:acme:3", "status": "open", "source": "board",
+                                       "source_key": "greenhouse:acme", "company": "Acme",
+                                       "title": "Director, Program Management",
+                                       "identity": "acme|director program management",
+                                       "last_seen": "2026-09-30", "description": "x"}
+    cfg = _cfg([{"company": "Acme", "ats": "greenhouse", "slug": "acme"}])
+    r = run(store=store, cfg=cfg, client=_client({"/boards/acme/": GH}), adzuna=NO_ADZUNA,
+            today=date(2026, 10, 1))
+    rec = store.jobs["greenhouse:acme:3"]            # GH job 3 is in San Francisco
+    assert rec["status"] == "filtered_out" and rec["filter_reason"] == "US location"
+    assert r.filtered_out == 1 and r.closed == 0
+
+
 def test_excluded_companies():
     cfg = load_config()
     assert not filters.prefilter(_pj("Senior Technical Program Manager", company="Amazon"), cfg).keep

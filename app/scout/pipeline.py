@@ -51,6 +51,7 @@ class RunReport:
     new: int = 0
     updated: int = 0
     closed: int = 0
+    filtered_out: int = 0
     new_tier1: int = 0
     new_tier2: int = 0
     source_errors: list[dict[str, str]] = field(default_factory=list)
@@ -180,11 +181,20 @@ def run(store: Optional[JobStore] = None, cfg: Optional[dict] = None,
 
     for source_key, job in found:
         verdict = prefilter(job, cfg)
+        jid = f"{source_key}:{job.external_id}"
         if not verdict.keep:
+            # A job stored under older, looser filters: retire it with the reason
+            # rather than letting it look like the employer closed the posting.
+            stale = store.jobs.get(jid)
+            if stale and stale.get("status") == "open":
+                stale.update(status="filtered_out", closed_on=today.isoformat(),
+                             filter_reason=verdict.reason)
+                stale.pop("description", None)
+                seen_ids.add(jid)
+                report.filtered_out += 1
             continue
         report.passed_filter += 1
         source = "adzuna" if source_key == "adzuna" else "board"
-        jid = f"{source_key}:{job.external_id}"
 
         if jid not in store.jobs:
             # Same opening already known from another source (prefer the official board).

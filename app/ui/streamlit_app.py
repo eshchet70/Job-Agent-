@@ -2804,16 +2804,20 @@ elif screen == "🎯 Coordinator":
                 st.markdown("---")
                 rc1, rc2 = st.columns([5, 3])
                 with rc1:
-                    st.caption("Resume tailoring uses your master resume + evidence library to inject missing keywords.")
+                    st.caption(
+                        "Claude rewrites your master resume for this posting using only facts from the "
+                        "master resume and evidence library, then fact-checks the draft. Takes about a minute."
+                    )
+                    prior_error = entry.as_dict().get("tailoring_error")
+                    if prior_error:
+                        st.error(f"Last attempt failed: {prior_error}")
                 with rc2:
                     if st.button("⚙️ Tailor Resume", key=f"tailor_{entry.id}", use_container_width=True, type="primary"):
-                        with st.spinner(f"Tailoring resume for {entry.company}…"):
+                        with st.spinner(f"Tailoring and fact-checking resume for {entry.company}…"):
                             path = coord.run_tailoring(entry.id)
                         if path:
                             st.success(f"✅ Resume saved to `{path}`")
-                            st.rerun()
-                        else:
-                            st.error("Tailoring failed — check logs.")
+                        st.rerun()
         st.divider()
 
     in_progress = coord.queue.by_status(JobStatus.tailoring)
@@ -2832,28 +2836,57 @@ elif screen == "🎯 Coordinator":
             with st.container(border=True):
                 st.markdown(f"**{entry.company} — {entry.title}**")
                 resume_path = entry.tailored_resume_path
-                if resume_path and Path(resume_path).exists():
+                e_data = entry.as_dict()
+
+                if entry.status == JobStatus.rejected_resume:
+                    st.warning("You rejected the last draft. Add or edit your notes below, then click Re-tailor.")
+                    if e_data.get("tailoring_error"):
+                        st.error(f"Last attempt failed: {e_data['tailoring_error']}")
+
+                # Fact-check result from the resume agent
+                check = e_data.get("resume_check")
+                if check == "ready":
+                    st.success("Fact check passed: every number, date and role matches your master resume and evidence library.")
+                elif check == "needs_review":
+                    st.warning("Fact check found statements to review before you send this:")
+                    for issue in e_data.get("resume_issues", []):
+                        st.markdown(f"- {issue}")
+                elif resume_path:
+                    st.warning("This draft came from the old template tailor and was not fact-checked. Re-tailor it before use.")
+                not_added = [k for k in e_data.get("resume_keywords_not_added", []) if k]
+                if not_added:
+                    st.caption("Job requirements left out because your sources don't support them: "
+                               + ", ".join(not_added))
+
+                text_path = e_data.get("tailored_resume_text_path") or resume_path
+                if text_path and Path(text_path).exists() and not str(text_path).endswith(".docx"):
                     with st.expander("📄 Preview Tailored Resume", expanded=True):
-                        try:
-                            content = Path(resume_path).read_text(encoding="utf-8")
-                            st.text_area("Tailored Resume", value=content[:4000], height=300,
-                                         key=f"preview_{entry.id}", label_visibility="collapsed")
-                        except Exception:
-                            st.info(f"Resume at: `{resume_path}`")
+                        st.markdown(Path(text_path).read_text(encoding="utf-8"))
+                if resume_path and Path(resume_path).exists():
+                    st.download_button(
+                        "⬇️ Download resume (.docx)" if str(resume_path).endswith(".docx") else "⬇️ Download resume",
+                        data=Path(resume_path).read_bytes(),
+                        file_name=Path(resume_path).name,
+                        key=f"dl_{entry.id}",
+                    )
 
                 rc1, rc2, rc3 = st.columns(3)
                 with rc1:
                     if st.button("✅ Approve & Proceed", key=f"apprsub_{entry.id}",
-                                 use_container_width=True, type="primary"):
+                                 use_container_width=True, type="primary",
+                                 disabled=entry.status != JobStatus.resume_ready):
                         coord.approve_resume(entry.id)
                         st.success("Resume approved — ready for submission!")
                         st.rerun()
                 with rc2:
-                    feedback = st.text_input("Rejection reason", key=f"feedback_{entry.id}",
-                                             placeholder="e.g. missing AI keywords")
+                    feedback = st.text_input("What should change?", key=f"feedback_{entry.id}",
+                                             value=e_data.get("resume_feedback", ""),
+                                             placeholder="e.g. lead with the portfolio governance work")
                 with rc3:
                     if st.button("🔄 Re-tailor", key=f"retailor_{entry.id}", use_container_width=True):
                         coord.reject_resume(entry.id, feedback)
+                        with st.spinner(f"Re-tailoring resume for {entry.company} with your notes…"):
+                            coord.run_tailoring(entry.id, feedback=feedback)
                         st.rerun()
         st.divider()
 
@@ -2861,11 +2894,12 @@ elif screen == "🎯 Coordinator":
     # GATE 3 — Confirm & Submit
     # ═══════════════════════════════════════════════════════════════════
     if sub_ready:
-        st.subheader(f"🚀 Gate 3 — Confirm & Submit ({len(sub_ready)} jobs)")
-        st.warning(
-            "⚠️ **Final human gate.** Clicking Submit will open the job URL in a visible "
-            "browser window, fill the form, and upload your resume. You must watch the browser "
-            "and confirm the final submit click yourself."
+        st.subheader(f"🚀 Gate 3 — Apply ({len(sub_ready)} jobs)")
+        st.info(
+            "The agent opens the application in a browser window, fills your contact details and "
+            "attaches the tailored resume. **It never clicks Submit.** Answer the employer's own "
+            "questions, check everything, submit it yourself, then close the window and mark the "
+            "job as applied here."
         )
 
         from app.agents.submission_agent import SubmissionAgent, detect_ats
@@ -2873,69 +2907,68 @@ elif screen == "🎯 Coordinator":
         playwright_ok, playwright_msg = sub_agent.is_available()
 
         if not playwright_ok:
-            st.error(f"🔴 Submission Agent not available: {playwright_msg}")
+            st.error(f"🔴 Pre-fill is not available: {playwright_msg}")
+        profile_gaps = sub_agent.profile_gaps()
+        if profile_gaps:
+            st.warning(
+                "These values are missing from `data/submission_profile.json`, so they will be "
+                "left blank: " + ", ".join(profile_gaps)
+            )
 
         for entry in sub_ready:
             with st.container(border=True):
                 st.markdown(f"**{entry.company} — {entry.title}**")
                 ats_detected = detect_ats(entry.url) if entry.url else "unknown"
+                prefill_supported = ats_detected in ("ashby", "greenhouse", "lever")
                 st.caption(
                     f"ATS: **{ats_detected.title()}**  ·  "
                     f"Resume: `{Path(entry.tailored_resume_path).name if entry.tailored_resume_path else '—'}`"
                 )
                 if entry.url:
                     st.markdown(
-                        f'<a href="{entry.url}" target="_blank" style="font-size:0.85rem">🔗 Review Job Posting First</a>',
+                        f'<a href="{entry.url}" target="_blank" style="font-size:0.85rem">🔗 Open job posting</a>',
                         unsafe_allow_html=True,
                     )
-
-                g3c1, g3c2, g3c3 = st.columns(3)
-                with g3c1:
-                    if playwright_ok and st.button(
-                        "👁 Dry Run (fill, no submit)",
-                        key=f"dryrun_{entry.id}",
-                        use_container_width=True,
-                    ):
-                        with st.spinner("Opening browser and filling form…"):
-                            result = sub_agent.prefill_preview(
-                                url=entry.url,
-                                resume_path=Path(entry.tailored_resume_path),
-                                company=entry.company,
-                                title=entry.title,
-                            )
-                        if result.get("screenshot"):
-                            st.image(result["screenshot"], caption="Form pre-filled (not submitted)")
-                        st.info(f"Fields filled: {', '.join(result.get('fields_filled', []))}")
-                        if result.get("fields_skipped"):
-                            st.caption(f"Skipped: {', '.join(result.get('fields_skipped', []))}")
-
-                with g3c2:
-                    confirm_key = f"confirm_{entry.id}"
-                    confirmed = st.checkbox(
-                        "☑️ I have reviewed the job posting and my resume",
-                        key=confirm_key,
+                e_sub = entry.as_dict()
+                if e_sub.get("submission_error"):
+                    st.error(f"Last pre-fill attempt: {e_sub['submission_error']}")
+                elif e_sub.get("prefilled_at"):
+                    st.caption(
+                        f"Pre-filled {e_sub['prefilled_at'][:16].replace('T', ' ')} UTC: "
+                        + ", ".join(e_sub.get("prefill_fields", []))
                     )
 
-                with g3c3:
-                    if playwright_ok and confirmed:
-                        if st.button(
-                            "🚀 SUBMIT APPLICATION",
-                            key=f"submit_{entry.id}",
-                            type="primary",
-                            use_container_width=True,
+                g3c1, g3c2 = st.columns(2)
+                with g3c1:
+                    if st.button(
+                        "📝 Open & pre-fill application",
+                        key=f"prefill_{entry.id}",
+                        use_container_width=True,
+                        type="primary",
+                        disabled=not (playwright_ok and prefill_supported),
+                        help=None if prefill_supported else "Pre-fill supports Ashby, Greenhouse and Lever. Apply on the posting directly.",
+                    ):
+                        with st.spinner(
+                            "A browser window is open with the form pre-filled. Finish and submit it "
+                            "there, then close the window to continue…"
                         ):
-                            with st.spinner("Submitting application…"):
-                                result = coord.submit_job(entry.id, dry_run=False)
-                            if result.get("success"):
-                                st.balloons()
-                                st.success(f"✅ Application submitted to {entry.company}!")
-                                if result.get("confirmation_screenshot"):
-                                    st.image(result["confirmation_screenshot"], caption="Submission confirmation")
-                                st.rerun()
-                            else:
-                                st.error(f"Submission failed: {result.get('error', 'Unknown error')}")
-                    elif not confirmed:
-                        st.caption("☝️ Check the confirmation box first")
+                            result = coord.prefill_application(entry.id)
+                        if result.get("success"):
+                            st.success(result.get("confirmation", "Form pre-filled."))
+                            if result.get("fields_skipped"):
+                                st.caption("Left for you to fill: " + "; ".join(result["fields_skipped"]))
+                        else:
+                            st.error(f"Pre-fill failed: {result.get('error', 'Unknown error')}")
+
+                with g3c2:
+                    if st.button(
+                        "✅ I submitted it — mark as applied",
+                        key=f"applied_{entry.id}",
+                        use_container_width=True,
+                    ):
+                        coord.mark_applied(entry.id)
+                        st.success(f"Marked as applied: {entry.company}")
+                        st.rerun()
         st.divider()
 
     # ═══════════════════════════════════════════════════════════════════
@@ -3080,17 +3113,22 @@ elif screen == "🎯 Coordinator":
                                 st.warning("Log at least one round first.")
                             else:
                                 with st.spinner("Analyzing with Claude…"):
-                                    coord.run_interview_assessment(entry.id, force_refresh=True)
-                                iv_record = iv_agent.load(entry.id) or iv_record
-                                cached = iv_record.last_assessment
+                                    res = coord.run_interview_assessment(entry.id, force_refresh=True)
+                                # A failed run is not saved, so keep its reason to show after the rerun.
+                                st.session_state[f"assess_err_{entry.id}"] = (
+                                    res.get("_error") or res.get("error", "") if res.get("_placeholder") or res.get("error") else "")
                                 st.rerun()
                     with ac2:
                         if cached and st.button("🔄 Refresh", key=f"reassess_{entry.id}", use_container_width=True):
                             with st.spinner("Re-analyzing…"):
-                                coord.run_interview_assessment(entry.id, force_refresh=True)
-                            iv_record = iv_agent.load(entry.id) or iv_record
-                            cached = iv_record.last_assessment
+                                res = coord.run_interview_assessment(entry.id, force_refresh=True)
+                            st.session_state[f"assess_err_{entry.id}"] = (
+                                res.get("_error") or res.get("error", "") if res.get("_placeholder") or res.get("error") else "")
                             st.rerun()
+
+                    assess_err = st.session_state.get(f"assess_err_{entry.id}")
+                    if assess_err:
+                        st.error(f"The last AI assessment did not run. {assess_err}")
 
                     if cached:
                         if cached.get("_placeholder"):

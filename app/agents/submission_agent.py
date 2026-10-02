@@ -1,26 +1,31 @@
 """
-Submission Agent — Playwright-based ATS form filler.
+Submission Agent — opens an application form and pre-fills it. It never submits.
 
 Supported ATS portals (auto-detected from URL):
   • Ashby      jobs.ashbyhq.com
-  • Greenhouse boards.greenhouse.io / job-boards.greenhouse.io / *.greenhouse.io
+  • Greenhouse boards.greenhouse.io / job-boards.greenhouse.io
   • Lever      jobs.lever.co
 
 Profile data is loaded from:
-  data/candidate_profile.json    (name, email, location, certifications…)
-  data/submission_profile.json   (phone, linkedin, work_authorization, cover_letter_template)
+  data/candidate_profile.json    (name, email, location)
+  data/submission_profile.json   (phone, linkedin, work_authorization, cover letter)
 
-The agent NEVER auto-submits. It fills the form, takes a screenshot for
-review, and then returns — the human clicks the final Submit button.
+What it does: opens the posting in a visible browser window, fills the
+standard contact fields, attaches the tailored resume, takes a screenshot,
+and then leaves the window open. The candidate answers the employer's own
+questions (work authorization, EEO, screening questions), checks everything,
+and clicks Submit herself. There is no code path here that clicks Submit.
+
+It runs as an ordinary browser: no disguised user agent, no CAPTCHA or
+bot-check workarounds. If a site blocks automated browsers, apply by hand.
 
 Usage:
     agent = SubmissionAgent()
-    result = agent.submit(
+    result = agent.prefill(
         url="https://jobs.ashbyhq.com/cohere/41cb2a12-...",
         resume_path=Path("data/tailored/Cohere_TPM/resume.docx"),
         company="Cohere",
         title="Technical Program Manager, AI Delivery",
-        dry_run=False,   # True = fill but do NOT click submit
     )
 """
 from __future__ import annotations
@@ -116,66 +121,80 @@ def detect_ats(url: str) -> str:
 # ATS-specific form fillers
 # ─────────────────────────────────────────────────────────────────────────────
 
-class _AshbyFiller:
-    """Fill an Ashby ATS job application form."""
+def application_url(url: str, ats: str) -> str:
+    """The page that actually shows the form (Ashby and Lever keep it on a sub-page)."""
+    base = url.split("?")[0].rstrip("/")
+    if ats == "ashby" and not base.endswith("/application"):
+        return base + "/application"
+    if ats == "lever" and not base.endswith("/apply"):
+        return base + "/apply"
+    return url
 
-    SELECTORS = {
-        "first_name":       'input[name="name.first"], input[placeholder*="First"]',
-        "last_name":        'input[name="name.last"], input[placeholder*="Last"]',
-        "email":            'input[name="email"], input[type="email"]',
-        "phone":            'input[name="phone"], input[type="tel"]',
-        "linkedin":         'input[name*="linkedin" i], input[placeholder*="LinkedIn" i]',
-        "resume_upload":    'input[type="file"][accept*="pdf"], input[type="file"][accept*="doc"]',
-        "location":         'input[name*="location" i], input[placeholder*="Location" i]',
-        "work_auth":        'select[name*="authorization" i], select[name*="workAuth" i]',
-        "cover_letter":     'textarea[name*="cover" i], textarea[placeholder*="cover" i]',
-        "submit":           'button[type="submit"], button:has-text("Submit")',
+
+def is_placeholder(value: str) -> bool:
+    """Template values that were never filled in, e.g. '.../in/YOUR_LINKEDIN_HANDLE/'."""
+    v = (value or "").strip()
+    return not v or "YOUR_" in v.upper() or v.lower() in ("todo", "tbd", "n/a")
+
+
+class _AshbyFiller:
+    """Fill the standard fields of an Ashby application form."""
+
+    SELECTORS: dict[str, Optional[str]] = {
+        "first_name":    'input[name="name.first"], input[placeholder*="First"]',
+        "last_name":     'input[name="name.last"], input[placeholder*="Last"]',
+        "full_name":     'input[name="_systemfield_name"], input[name="name"]',
+        "email":         'input[name="_systemfield_email"], input[name="email"], input[type="email"]',
+        "phone":         'input[name="phone"], input[type="tel"]',
+        "linkedin":      'input[name*="linkedin" i], input[placeholder*="LinkedIn" i]',
+        "resume_upload": 'input[type="file"]',
+        "location":      'input[name*="location" i], input[placeholder*="Location" i]',
+        "cover_letter":  'textarea[name*="cover" i], textarea[placeholder*="cover" i]',
     }
 
     def fill(self, page, profile: CandidateSubmissionProfile,
-             resume_path: Path, company: str, title: str, dry_run: bool = False) -> dict:
-        from playwright.sync_api import expect
-        result = {"fields_filled": [], "fields_skipped": [], "screenshot": None}
+             resume_path: Path, company: str, title: str) -> dict:
+        result: dict = {"fields_filled": [], "fields_skipped": [], "screenshot": None}
 
-        name_parts = profile.name.split(" ", 1)
-        first = name_parts[0]
-        last = name_parts[1] if len(name_parts) > 1 else ""
+        first, _, last = profile.name.partition(" ")
 
-        # Fill fields safely
-        def try_fill(label: str, selector: str, value: str):
+        def try_fill(label: str, value: str) -> bool:
+            selector = self.SELECTORS.get(label)
+            if not selector:
+                return False
+            if is_placeholder(value):
+                result["fields_skipped"].append(f"{label} (no value in your profile)")
+                return False
             try:
                 el = page.locator(selector).first
-                if el.is_visible(timeout=2000) and value:
+                if el.is_visible(timeout=2000):
                     el.fill(value)
                     result["fields_filled"].append(label)
-                else:
-                    result["fields_skipped"].append(label)
-            except Exception as exc:
-                result["fields_skipped"].append(f"{label} ({exc})")
+                    return True
+                result["fields_skipped"].append(f"{label} (field not found)")
+            except Exception:
+                result["fields_skipped"].append(f"{label} (field not found)")
+            return False
 
-        try_fill("first_name", self.SELECTORS["first_name"], first)
-        try_fill("last_name",  self.SELECTORS["last_name"],  last)
-        try_fill("email",      self.SELECTORS["email"],      profile.email)
-        try_fill("phone",      self.SELECTORS["phone"],      profile.phone)
-        try_fill("linkedin",   self.SELECTORS["linkedin"],   profile.linkedin_url)
-        try_fill("location",   self.SELECTORS["location"],   profile.location)
+        # Name: either separate first/last fields or one full-name field.
+        if not (try_fill("first_name", first) and try_fill("last_name", last)):
+            if try_fill("full_name", profile.name):
+                result["fields_skipped"] = [f for f in result["fields_skipped"]
+                                            if not f.startswith(("first_name", "last_name"))]
+        try_fill("email", profile.email)
+        try_fill("phone", profile.phone)
+        try_fill("linkedin", profile.linkedin_url)
+        try_fill("location", profile.location)
+        try_fill("cover_letter", profile.cover_letter(company, title))
 
-        cl = profile.cover_letter(company, title)
-        if cl:
-            try_fill("cover_letter", self.SELECTORS["cover_letter"], cl)
-
-        # Upload resume
+        # Attach the resume
         try:
-            upload_el = page.locator(self.SELECTORS["resume_upload"]).first
-            if upload_el.is_visible(timeout=3000):
-                upload_el.set_input_files(str(resume_path))
-                result["fields_filled"].append("resume_upload")
-            else:
-                result["fields_skipped"].append("resume_upload")
-        except Exception as exc:
-            result["fields_skipped"].append(f"resume_upload ({exc})")
+            upload = page.locator(self.SELECTORS["resume_upload"]).first
+            upload.set_input_files(str(resume_path), timeout=5000)
+            result["fields_filled"].append("resume_upload")
+        except Exception:
+            result["fields_skipped"].append("resume_upload (upload field not found)")
 
-        # Screenshot before submit
         SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
         safe = re.sub(r"[^\w]", "_", f"{company}_{title}")[:60]
         screenshot_path = SCREENSHOTS_DIR / f"{safe}_prefill.png"
@@ -184,76 +203,38 @@ class _AshbyFiller:
             result["screenshot"] = str(screenshot_path)
         except Exception:
             pass
-
-        if dry_run:
-            result["dry_run"] = True
-            return result
-
-        # Final submit — human must have already confirmed in UI
-        try:
-            submit_el = page.locator(self.SELECTORS["submit"]).first
-            if submit_el.is_visible(timeout=3000):
-                submit_el.click()
-                page.wait_for_timeout(3000)
-                result["submitted"] = True
-
-                # Screenshot after submit for confirmation
-                confirm_path = SCREENSHOTS_DIR / f"{safe}_submitted.png"
-                page.screenshot(path=str(confirm_path), full_page=True)
-                result["confirmation_screenshot"] = str(confirm_path)
-            else:
-                result["submitted"] = False
-                result["error"] = "Submit button not found"
-        except Exception as exc:
-            result["submitted"] = False
-            result["error"] = str(exc)
-
         return result
 
 
 class _GreenhouseFiller(_AshbyFiller):
-    """Greenhouse overrides — same approach, different selectors."""
     SELECTORS = {
         "first_name":    '#first_name',
         "last_name":     '#last_name',
+        "full_name":     None,
         "email":         '#email',
         "phone":         '#phone',
-        "linkedin":      'input[id*="linkedin" i]',
+        "linkedin":      'input[id*="linkedin" i], input[aria-label*="LinkedIn" i]',
         "resume_upload": '#resume, input[type="file"]',
-        "location":      '#job_application_location',
-        "work_auth":     'select[id*="authorization" i]',
-        "cover_letter":  '#cover_letter',
-        "submit":        '#submit_app, button[type="submit"]',
+        "location":      '#job_application_location, #candidate-location',
+        "cover_letter":  '#cover_letter_text, textarea[id*="cover" i]',
     }
 
 
 class _LeverFiller(_AshbyFiller):
-    """Lever overrides."""
     SELECTORS = {
-        "first_name":    'input[name="name"]',   # Lever uses full name in one field
+        "first_name":    None,                   # Lever uses one full-name field
         "last_name":     None,
+        "full_name":     'input[name="name"]',
         "email":         'input[name="email"]',
         "phone":         'input[name="phone"]',
-        "linkedin":      'input[name*="linkedin" i]',
+        "linkedin":      'input[name*="LinkedIn" i]',
         "resume_upload": 'input[type="file"]',
         "location":      'input[name*="location" i]',
-        "work_auth":     None,
         "cover_letter":  'textarea[name*="comments" i], textarea[name*="additional" i]',
-        "submit":        'button[type="submit"]',
     }
 
-    def fill(self, page, profile, resume_path, company, title, dry_run=False):
-        # Lever uses a single "name" field
-        full_name_sel = 'input[name="name"]'
-        try:
-            el = page.locator(full_name_sel).first
-            if el.is_visible(timeout=2000):
-                el.fill(profile.name)
-        except Exception:
-            pass
-        # Delegate rest (email, phone, etc.) via parent with adjusted selectors
-        self.SELECTORS["first_name"] = None  # Already handled
-        return super().fill(page, profile, resume_path, company, title, dry_run)
+
+FILLERS = {"ashby": _AshbyFiller, "greenhouse": _GreenhouseFiller, "lever": _LeverFiller}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -262,7 +243,8 @@ class _LeverFiller(_AshbyFiller):
 
 class SubmissionAgent:
     """
-    Playwright-based job application submission agent.
+    Opens an application form in a visible browser and pre-fills it.
+    The candidate reviews it and clicks Submit herself.
 
     Requires: playwright Python package + browser installed.
     Install:  pip install playwright && playwright install chromium
@@ -272,108 +254,116 @@ class SubmissionAgent:
         self.profile = CandidateSubmissionProfile.load()
 
     def is_available(self) -> tuple[bool, str]:
-        """Check if Playwright is installed and usable."""
+        """Check that Playwright is installed (does not open a browser)."""
         try:
-            import playwright  # noqa: F401
-            from playwright.sync_api import sync_playwright
-            with sync_playwright() as p:
-                browser = p.chromium.launch(headless=False)
-                browser.close()
+            import playwright.sync_api  # noqa: F401
             return True, "OK"
         except ImportError:
             return False, "Playwright not installed. Run: pip install playwright && playwright install chromium"
-        except Exception as exc:
-            return False, f"Playwright error: {exc}"
 
-    def submit(
+    def profile_gaps(self) -> list[str]:
+        """Profile values that are missing or still template placeholders."""
+        checks = {"name": self.profile.name, "email": self.profile.email,
+                  "phone": self.profile.phone, "LinkedIn URL": self.profile.linkedin_url}
+        return [label for label, value in checks.items() if is_placeholder(value)]
+
+    def prefill(
         self,
         url: str,
         resume_path: Path,
         company: str,
         title: str,
-        dry_run: bool = True,
+        keep_open: bool = True,
+        headless: bool = False,
+        max_wait_minutes: int = 45,
     ) -> dict:
         """
-        Open the job URL, fill the form, upload the resume.
+        Open the application form, fill the standard fields and attach the resume.
+        Nothing is submitted.
 
         Args:
-            url:         Direct ATS job posting URL
-            resume_path: Path to the tailored .docx or .pdf resume
-            company:     Company name (for cover letter interpolation)
-            title:       Job title
-            dry_run:     If True, fill form but DO NOT click Submit
+            keep_open:        Leave the window open so the candidate can finish the
+                              form and submit it herself. The call returns when she
+                              closes the window (or after max_wait_minutes).
+            headless:         Run without a visible window (tests only; implies the
+                              window is not kept open).
 
         Returns:
-            dict with keys: success, confirmation, screenshot, error, fields_filled, fields_skipped
+            dict with keys: success (form opened and filled), ats, fields_filled,
+            fields_skipped, screenshot, confirmation, error
         """
         available, msg = self.is_available()
         if not available:
             return {"success": False, "error": msg}
 
+        resume_path = Path(resume_path)
         if not resume_path.exists():
             return {"success": False, "error": f"Resume file not found: {resume_path}"}
 
         ats = detect_ats(url)
-        filler_map = {
-            "ashby":      _AshbyFiller(),
-            "greenhouse": _GreenhouseFiller(),
-            "lever":      _LeverFiller(),
-        }
-        filler = filler_map.get(ats)
-        if filler is None:
+        filler_cls = FILLERS.get(ats)
+        if filler_cls is None:
             return {
                 "success": False,
+                "ats": ats,
                 "error": (
-                    f"Unsupported ATS: {ats} (URL: {url}). "
-                    "Supported: Ashby, Greenhouse, Lever. "
-                    "Please submit manually using the Apply Now button."
+                    f"Pre-fill is not supported for this site ({ats}). "
+                    "Supported: Ashby, Greenhouse, Lever. Please apply on the posting directly."
                 ),
             }
 
-        log.info("Submitting to %s via %s (dry_run=%s)", company, ats, dry_run)
+        log.info("Pre-filling %s application via %s", company, ats)
+
+        def drive_browser() -> dict:
+            from playwright.sync_api import TimeoutError as PlaywrightTimeout
+            from playwright.sync_api import sync_playwright
+
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=headless)
+                page = browser.new_context(viewport={"width": 1280, "height": 900}).new_page()
+                page.goto(application_url(url, ats), wait_until="domcontentloaded", timeout=45000)
+                try:
+                    page.wait_for_load_state("networkidle", timeout=15000)
+                except PlaywrightTimeout:
+                    pass  # some ATS pages keep polling; the form is usually ready anyway
+
+                result = filler_cls().fill(page=page, profile=self.profile, resume_path=resume_path,
+                                           company=company, title=title)
+
+                if keep_open and not headless:
+                    try:
+                        page.wait_for_event("close", timeout=max_wait_minutes * 60 * 1000)
+                    except Exception:
+                        pass  # waited the maximum time, or the window was already closed
+                try:
+                    browser.close()
+                except Exception:
+                    pass
+            return result
 
         try:
-            from playwright.sync_api import sync_playwright
-            with sync_playwright() as p:
-                browser = p.chromium.launch(headless=False)  # Visible so user can watch
-                context = browser.new_context(
-                    viewport={"width": 1280, "height": 900},
-                    user_agent=(
-                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                    ),
-                )
-                page = context.new_page()
+            # Playwright's sync API cannot run in a thread that already has an event
+            # loop (some app hosts do), so the browser always gets its own thread.
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                result = pool.submit(drive_browser).result()
 
-                log.info("Navigating to: %s", url)
-                page.goto(url, wait_until="networkidle", timeout=30000)
-                page.wait_for_timeout(2000)  # Let JS settle
-
-                result = filler.fill(
-                    page=page,
-                    profile=self.profile,
-                    resume_path=resume_path,
-                    company=company,
-                    title=title,
-                    dry_run=dry_run,
-                )
-
-                browser.close()
-
-            result["success"] = result.get("submitted", dry_run)
             result["ats"] = ats
-            if dry_run:
+            result["success"] = bool(result.get("fields_filled"))
+            if result["success"]:
                 result["confirmation"] = (
-                    f"Dry run complete. Form filled for {company} — {title}. "
-                    f"Fields filled: {', '.join(result.get('fields_filled', []))}. "
-                    f"Review screenshot before approving submission."
+                    f"Form pre-filled for {company} — {title}: "
+                    f"{', '.join(result['fields_filled'])}. Nothing was submitted."
                 )
+            else:
+                result["error"] = ("The page opened but no form fields were recognised. "
+                                   "The site layout may have changed; please apply on the posting directly.")
             return result
 
         except Exception as exc:
-            log.error("Submission failed: %s", exc, exc_info=True)
-            return {"success": False, "error": str(exc)}
+            log.error("Pre-fill failed: %s", exc, exc_info=True)
+            return {"success": False, "ats": ats, "error": str(exc)[:400]}
 
     def prefill_preview(self, url: str, resume_path: Path, company: str, title: str) -> dict:
-        """Dry-run: fill the form and take a screenshot but never submit."""
-        return self.submit(url, resume_path, company, title, dry_run=True)
+        """Fill the form, take a screenshot and close the window straight away."""
+        return self.prefill(url, resume_path, company, title, keep_open=False)

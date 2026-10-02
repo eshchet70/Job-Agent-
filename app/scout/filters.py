@@ -46,6 +46,11 @@ def title_filter(title: str, cfg: dict) -> FilterResult:
     return FilterResult(True)
 
 
+# Location text that names no place at all ("Remote", "Anywhere", "Hybrid - Remote").
+_GENERIC_REMOTE = re.compile(r"^[\s\W]*(?:(?:fully|100%)\s+)?(?:remote|anywhere|global|worldwide|distributed|hybrid|flexible|work from home)?"
+                             r"(?:[\s\W]+(?:remote|anywhere|global|worldwide|distributed|hybrid|flexible))*[\s\W]*$", re.I)
+
+
 def location_filter(job: PortalJob, cfg: dict) -> FilterResult:
     loc_cfg = cfg["locations"]
     loc = (job.location or "").lower()
@@ -62,10 +67,11 @@ def location_filter(job: PortalJob, cfg: dict) -> FilterResult:
         if loc_cfg.get("accept_us_roles"):
             return FilterResult(True, flags=("us_role_verify_authorization",))
         return FilterResult(False, "US location")
-    if country is None:
-        if job.work_model == "remote" or not loc:
-            return FilterResult(True, flags=("location_unverified",))
-        return FilterResult(False, f"location outside target ({job.location})")
+    if country is None and _GENERIC_REMOTE.match(loc):
+        # No place named at all ("Remote", or blank): keep, but flag it.
+        return FilterResult(True, flags=("location_unverified",))
+    # A named place that is not Canada (or one we cannot place) is out of scope,
+    # even when the role is remote: "Remote - Korea" is still a Korea role.
     return FilterResult(False, f"location outside target ({job.location})")
 
 

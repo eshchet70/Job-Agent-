@@ -7,8 +7,8 @@ resume or a `safe_claims` entry in the evidence library. Nothing new is
 invented — no metrics, employers, titles, dates or tools.
 
 Three layers keep it honest:
-  1. Writer   — Claude tailors the resume via a forced tool call (structured
-                JSON), citing a source (master / evidence id) for each bullet.
+  1. Writer   — Claude tailors the resume and returns it as structured JSON,
+                citing a source (master / evidence id) for each bullet.
   2. Checks   — deterministic Python: numbers, dates, employers, contact
                 header and unsafe-claim phrases are verified against sources.
   3. Auditor  — a second Claude call reads tailored vs. sources and lists any
@@ -18,7 +18,7 @@ Three layers keep it honest:
 Outputs per job: output/resumes/<Company>_<Title>.docx (+ .md and a short
 change log), uploaded by the workflow as a private run artifact.
 
-Requires ANTHROPIC_API_KEY. Model via ANTHROPIC_MODEL (default below).
+Requires ANTHROPIC_API_KEY. Model via ANTHROPIC_MODEL (default in app/agents/llm.py).
 """
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ log = logging.getLogger("resume_agent")
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 OUTPUT_DIR = ROOT / "output" / "resumes"
-DEFAULT_MODEL = "claude-sonnet-5-5"
+from app.agents.llm import DEFAULT_MODEL, get_model, make_client, structured_call  # noqa: E402,F401
 MAX_PER_RUN = int(os.getenv("MAX_RESUMES_PER_RUN", "8"))
 
 WRITER_SYSTEM = """You tailor Elena Shchetinina's resume to a specific job posting.
@@ -69,61 +69,54 @@ responsibilities, or any paraphrase of an unsafe claim. Rewording and condensing
 is fine. Be specific and quote the problematic phrase. If everything is supported, return an
 empty list."""
 
-TAILOR_TOOL = {
-    "name": "submit_tailored_resume",
-    "description": "Submit the tailored resume.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "summary": {"type": "string", "description": "Professional summary, 3-4 sentences."},
-            "core_capabilities": {"type": "array", "items": {"type": "string"}},
-            "roles": {
-                "type": "array",
-                "description": "Every role from the master resume, same order. Use the exact heading lines.",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "heading": {"type": "string",
-                                    "description": "Exact role block heading lines from the master (### line, bold title line, italic line, and any sub-role bold lines), joined with newlines."},
-                        "bullets": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "text": {"type": "string"},
-                                    "source": {"type": "string",
-                                               "description": "'master' or an evidence id such as BELL-TCO-01"},
-                                },
-                                "required": ["text", "source"],
+TAILOR_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "summary": {"type": "string", "description": "Professional summary, 3-4 sentences."},
+        "core_capabilities": {"type": "array", "items": {"type": "string"}},
+        "roles": {
+            "type": "array",
+            "description": "Every role from the master resume, same order. Use the exact heading lines.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "heading": {"type": "string",
+                                "description": "Exact role block heading lines from the master (### line, bold title line, italic line, and any sub-role bold lines), joined with newlines."},
+                    "bullets": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "text": {"type": "string"},
+                                "source": {"type": "string",
+                                           "description": "'master' or an evidence id such as BELL-TCO-01"},
                             },
+                            "required": ["text", "source"],
                         },
                     },
-                    "required": ["heading", "bullets"],
                 },
-            },
-            "tools_section": {"type": "string",
-                              "description": "Tools & Technology section body, reordered for relevance; only items already in the master."},
-            "keywords_added": {"type": "array", "items": {"type": "string"}},
-            "keywords_not_added": {
-                "type": "array",
-                "items": {"type": "object",
-                          "properties": {"keyword": {"type": "string"}, "reason": {"type": "string"}},
-                          "required": ["keyword", "reason"]},
+                "required": ["heading", "bullets"],
             },
         },
-        "required": ["summary", "core_capabilities", "roles", "tools_section",
-                     "keywords_added", "keywords_not_added"],
+        "tools_section": {"type": "string",
+                          "description": "Tools & Technology section body, reordered for relevance; only items already in the master."},
+        "keywords_added": {"type": "array", "items": {"type": "string"}},
+        "keywords_not_added": {
+            "type": "array",
+            "items": {"type": "object",
+                      "properties": {"keyword": {"type": "string"}, "reason": {"type": "string"}},
+                      "required": ["keyword", "reason"]},
+        },
     },
+    "required": ["summary", "core_capabilities", "roles", "tools_section",
+                 "keywords_added", "keywords_not_added"],
 }
 
-AUDIT_TOOL = {
-    "name": "submit_audit",
-    "description": "Report unsupported statements.",
-    "input_schema": {
-        "type": "object",
-        "properties": {"issues": {"type": "array", "items": {"type": "string"}}},
-        "required": ["issues"],
-    },
+AUDIT_SCHEMA = {
+    "type": "object",
+    "properties": {"issues": {"type": "array", "items": {"type": "string"},
+                              "description": "Each unsupported statement, quoting the phrase. Empty if none."}},
+    "required": ["issues"],
 }
 
 
@@ -337,33 +330,25 @@ class TailorOutcome:
 
 class ResumeAgent:
     def __init__(self, client=None, model: Optional[str] = None, sources: Optional[Sources] = None):
-        if client is None:
-            import anthropic
-            client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY
-        self.client = client
-        self.model = model or os.getenv("ANTHROPIC_MODEL", DEFAULT_MODEL)
+        self.client = client or make_client()   # reads ANTHROPIC_API_KEY
+        self.model = get_model(model)
         self.sources = sources or Sources.load()
 
-    def _call_tool(self, system: str, user: str, tool: dict, max_tokens: int = 8000) -> dict:
-        resp = self.client.messages.create(
-            model=self.model,
-            max_tokens=max_tokens,
-            system=system,
-            tools=[tool],
-            tool_choice={"type": "tool", "name": tool["name"]},
-            messages=[{"role": "user", "content": user}],
-        )
-        for block in resp.content:
-            if getattr(block, "type", None) == "tool_use":
-                return block.input
-        raise RuntimeError("Model did not return a tool call")
+    def _call(self, system: str, user: str, schema: dict, max_tokens: int = 16000) -> dict:
+        return structured_call(self.client, self.model, system, user, schema, max_tokens)
 
-    def _writer_prompt(self, job: dict, feedback: Optional[list[str]] = None) -> str:
+    def _writer_prompt(self, job: dict, feedback: Optional[list[str]] = None,
+                       user_feedback: str = "") -> str:
         p = (f"<job>\nCompany: {job['company']}\nTitle: {job['title']}\n"
              f"Location: {job.get('location') or 'n/a'}\n\n{job.get('description') or ''}\n</job>\n\n"
              f"<master_resume>\n{self.sources.master}\n</master_resume>\n\n"
              f"<evidence_library>\n{self.sources.evidence_for_prompt()}\n</evidence_library>\n\n"
              f"<candidate_constraints>\n" + "\n".join(self.sources.constraints) + "\n</candidate_constraints>")
+        if user_feedback.strip():
+            p += ("\n\n<candidate_feedback>\nElena reviewed an earlier draft for this job and asked for "
+                  "these changes. Apply them as far as the sources allow; if a request needs a claim the "
+                  "sources do not support, leave it out and say so in `keywords_not_added`.\n"
+                  f"{user_feedback.strip()}\n</candidate_feedback>")
         if feedback:
             p += ("\n\nYour previous draft had these problems. Fix every one by removing or "
                   "rewording the statement so it is fully supported:\n- " + "\n- ".join(feedback))
@@ -373,14 +358,19 @@ class ResumeAgent:
         user = (f"<sources>\n<master_resume>\n{self.sources.master}\n</master_resume>\n"
                 f"<evidence_library>\n{self.sources.evidence_for_prompt()}\n</evidence_library>\n</sources>\n\n"
                 f"<tailored_resume>\n{tailored_md}\n</tailored_resume>")
-        return list(self._call_tool(AUDITOR_SYSTEM, user, AUDIT_TOOL, max_tokens=2000).get("issues", []))
+        return list(self._call(AUDITOR_SYSTEM, user, AUDIT_SCHEMA, max_tokens=8000).get("issues", []))
 
-    def tailor(self, job: dict) -> TailorOutcome:
+    def tailor(self, job: dict, user_feedback: str = "") -> TailorOutcome:
+        """
+        Tailor the master resume to `job` (needs company, title, description).
+        `user_feedback` carries the candidate's notes from rejecting an earlier draft.
+        """
         feedback: Optional[list[str]] = None
         result, md, issues = None, "", []
         try:
             for attempt in range(2):
-                result = self._call_tool(WRITER_SYSTEM, self._writer_prompt(job, feedback), TAILOR_TOOL)
+                result = self._call(
+                    WRITER_SYSTEM, self._writer_prompt(job, feedback, user_feedback), TAILOR_SCHEMA)
                 md = render_markdown(result, self.sources)
                 issues = deterministic_issues(md, self.sources)
                 if not issues:
@@ -398,6 +388,27 @@ class ResumeAgent:
             keywords_added=list(result.get("keywords_added", [])) if result else [],
             keywords_not_added=list(result.get("keywords_not_added", [])) if result else [],
         )
+
+
+def write_outputs(outcome: TailorOutcome, job: dict, out_dir: Path, name: str) -> dict[str, Path]:
+    """Write <name>.docx, <name>.md and <name>_NOTES.md for a tailored resume."""
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    md_path, docx_path, notes_path = (out_dir / f"{name}.md", out_dir / f"{name}.docx",
+                                      out_dir / f"{name}_NOTES.md")
+    md_path.write_text(outcome.markdown, encoding="utf-8")
+    write_docx(outcome.markdown, docx_path)
+    added = [f"- {k}" for k in outcome.keywords_added] or ["- none"]
+    not_added = [f"- {k['keyword']}: {k['reason']}" for k in outcome.keywords_not_added] or ["- none"]
+    notes = [f"# Tailoring notes — {job['company']}: {job['title']}", "",
+             f"Status: {outcome.status}", f"Posting: {job.get('url')}", "",
+             "## Keywords surfaced (supported by your sources)", *added, "",
+             "## JD requirements NOT added (no supporting evidence)", *not_added]
+    if outcome.issues:
+        notes += ["", "## Fact-check issues to review before sending",
+                  *[f"- {i}" for i in outcome.issues]]
+    notes_path.write_text("\n".join(notes) + "\n", encoding="utf-8")
+    return {"md": md_path, "docx": docx_path, "notes": notes_path}
 
 
 # ---------------------------------------------------------------------------
@@ -436,19 +447,7 @@ def run_batch(store=None, agent: Optional[ResumeAgent] = None, out_dir: Optional
                                "model": agent.model}
         if outcome.status in ("ready", "needs_review"):
             name = safe_filename(job["company"], job["title"])
-            (out_dir).mkdir(parents=True, exist_ok=True)
-            (out_dir / f"{name}.md").write_text(outcome.markdown, encoding="utf-8")
-            write_docx(outcome.markdown, out_dir / f"{name}.docx")
-            added = [f"- {k}" for k in outcome.keywords_added] or ["- none"]
-            not_added = [f"- {k['keyword']}: {k['reason']}" for k in outcome.keywords_not_added] or ["- none"]
-            notes = [f"# Tailoring notes — {job['company']}: {job['title']}", "",
-                     f"Status: {outcome.status}", f"Posting: {job.get('url')}", "",
-                     "## Keywords surfaced (supported by your sources)", *added, "",
-                     "## JD requirements NOT added (no supporting evidence)", *not_added]
-            if outcome.issues:
-                notes += ["", "## Fact-check issues to review before sending",
-                          *[f"- {i}" for i in outcome.issues]]
-            (out_dir / f"{name}_NOTES.md").write_text("\n".join(notes) + "\n", encoding="utf-8")
+            write_outputs(outcome, job, out_dir, name)
             rec.update({"file": f"{name}.docx", "issues": outcome.issues[:10], "run_url": run_url,
                         "keywords_not_added": [k["keyword"] for k in outcome.keywords_not_added][:10]})
         else:

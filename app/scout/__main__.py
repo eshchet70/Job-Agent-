@@ -6,6 +6,7 @@ Daily scout command line.
   python -m app.scout dashboard    # build site/index.html
   python -m app.scout daily        # all three, in order (what the workflow runs)
   python -m app.scout check        # verify every watchlist board slug resolves
+  python -m app.scout llm-check    # one small Claude call to confirm the API key and model work
 """
 from __future__ import annotations
 
@@ -21,7 +22,7 @@ def _run() -> None:
     report = run()
     print(f"Scout: fetched {report.fetched}, passed filters {report.passed_filter}, "
           f"new {report.new} (Tier 1: {report.new_tier1}, Tier 2: {report.new_tier2}), "
-          f"closed {report.closed}")
+          f"closed {report.closed}, dropped by filters {report.filtered_out}")
     for err in report.source_errors:
         print(f"  ! {err['company']} [{err['source']}]: {err['error']}")
 
@@ -59,10 +60,17 @@ def _check() -> int:
     return 1 if bad else 0
 
 
+def _llm_check() -> int:
+    from app.agents.llm import check
+    ok, message = check()
+    print(("  ok    " if ok else "  FAIL  ") + message)
+    return 0 if ok else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     parser = argparse.ArgumentParser(prog="python -m app.scout")
-    parser.add_argument("command", choices=["run", "resumes", "dashboard", "daily", "check"])
+    parser.add_argument("command", choices=["run", "resumes", "dashboard", "daily", "check", "llm-check"])
     args = parser.parse_args(argv)
     if args.command == "run":
         _run()
@@ -72,6 +80,8 @@ def main(argv: list[str] | None = None) -> int:
         _dashboard()
     elif args.command == "check":
         return _check()
+    elif args.command == "llm-check":
+        return _llm_check()
     elif args.command == "daily":
         _run()
         _resumes()

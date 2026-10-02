@@ -4,7 +4,7 @@ Coordinator Agent — orchestrates Scout → Resume → Submission pipeline.
 Human gates:
   Gate 1: User approves/skips each discovered job  (status: discovered → approved/skipped)
   Gate 2: User approves tailored resume draft       (status: resume_ready → submission_approved)
-  Gate 3: User confirms before final submit click   (inside Submission Agent)
+  Gate 3: Agent pre-fills the form; the user submits it herself and marks it applied
 """
 from __future__ import annotations
 
@@ -34,7 +34,8 @@ class CoordinatorAgent:
         coordinator.approve_job(job_id)             # Gate 1 ✓
         coordinator.run_tailoring(job_id)           # Trigger Resume Agent
         coordinator.approve_resume(job_id)          # Gate 2 ✓
-        coordinator.submit_job(job_id)              # Trigger Submission Agent
+        coordinator.prefill_application(job_id)     # Open + pre-fill the form (never submits)
+        coordinator.mark_applied(job_id)            # Gate 3 ✓ after the user submits it herself
     """
 
     def __init__(self, queue: Optional[JobQueue] = None):
@@ -68,7 +69,21 @@ class CoordinatorAgent:
         min_rank = tier_priority.get(min_tier, 2)
 
         added = 0
-        for job in store.get("jobs", {}).values():
+        changed = False
+        scout_jobs = store.get("jobs", {})
+
+        # Jobs still waiting for a Gate 1 decision whose posting has since closed,
+        # or been dropped by the scout's filters, should not stay in the review list.
+        for entry in self.queue.by_status(JobStatus.discovered):
+            scout_status = scout_jobs.get(entry.id, {}).get("status")
+            if scout_status in ("closed", "expired", "filtered_out"):
+                reason = scout_jobs[entry.id].get("filter_reason") or f"posting {scout_status}"
+                entry.skip(f"Auto-skipped: {reason}")
+                self.queue.update(entry)
+                changed = True
+                log.info("Auto-skipped %s (%s)", entry.id, reason)
+
+        for job in scout_jobs.values():
             if job.get("status") != "open":
                 continue
             tier = job.get("tier", "")
@@ -78,7 +93,7 @@ class CoordinatorAgent:
                 added += 1
                 log.info("Queued: %s — %s (%s)", job.get("company"), job.get("title"), tier)
 
-        if added:
+        if added or changed:
             self.save()
         return added
 
@@ -142,82 +157,86 @@ class CoordinatorAgent:
         except Exception:
             return None
 
-    def run_tailoring(self, job_id: str, feedback: str = "") -> Optional[str]:
+    def run_tailoring(self, job_id: str, feedback: str = "", agent=None) -> Optional[str]:
         """
-        Trigger the Resume Agent for an approved job.
-        Returns the path to the generated .docx file, or None on error.
+        Run the Claude resume agent for an approved (or resume-rejected) job.
 
-        The full JD is fetched from the Scout store on-demand.
+        The agent rewrites the master resume for this posting using only facts
+        from the master resume and the evidence library's safe claims, then
+        fact-checks the draft. Returns the path of the .docx, or None on error
+        (the reason is stored on the entry as `tailoring_error`).
+
+        Args:
+            feedback: the candidate's notes from rejecting an earlier draft. If
+                      empty, feedback saved by reject_resume() is used.
+            agent:    a ResumeAgent (tests inject one with a fake client).
         """
+        import os
+
         entry = self.queue.get(job_id)
         if not entry:
             log.error("Job not found: %s", job_id)
             return None
-        if entry.status not in (JobStatus.approved, JobStatus.rejected_resume):
-            log.warning("Job %s is not in an approved state: %s", job_id, entry.status)
+        previous_status = entry.status
+        if previous_status not in (JobStatus.approved, JobStatus.rejected_resume):
+            log.warning("Job %s is not in an approved state: %s", job_id, previous_status)
             return None
 
-        # Fetch full JD from scout store
+        def fail(message: str) -> None:
+            log.error("Tailoring failed for %s: %s", job_id, message)
+            entry._set("status", previous_status.value)
+            entry._set("tailoring_error", message)
+            self.queue.update(entry)
+            self.save()
+
+        # The full JD lives in the Scout store (the queue keeps only a preview).
         jd_text = self._get_jd(job_id)
         if not jd_text:
-            log.error("No JD text found for job %s", job_id)
+            fail("No job description stored for this job. Run the Scout again, then retry.")
+            return None
+        if agent is None and not os.getenv("ANTHROPIC_API_KEY"):
+            fail("ANTHROPIC_API_KEY is not set. Add it to the .env file in the project folder "
+                 "and restart the app.")
             return None
 
+        feedback = feedback or entry.as_dict().get("resume_feedback", "")
         entry.start_tailoring()
         self.queue.update(entry)
         self.save()
 
         try:
-            from app.orchestrator import load_master_resume
-            from app.services import resume_tailor
-            from app.services.evidence_loader import load_evidence_library
-            from app.services.jd_parser import parse_jd
-            from app.services.document_handler import save_docx
+            from app.agents.resume_agent import ResumeAgent, safe_filename, write_outputs
 
-            master = load_master_resume(allow_fallback=True)
-            evidence = load_evidence_library()
-            parsed = parse_jd(jd_text, company=entry.company)
+            agent = agent or ResumeAgent()
+            job = {"id": job_id, "company": entry.company, "title": entry.title,
+                   "location": entry.location, "url": entry.url, "description": jd_text}
+            outcome = agent.tailor(job, user_feedback=feedback)
+            if outcome.status == "error":
+                fail(outcome.error or "The resume agent returned an error.")
+                return None
 
-            tailored_text, meta = resume_tailor.tailor_resume(
-                master_resume_text=master,
-                job={"company": entry.company, "title": entry.title},
-                parsed_jd=parsed,
-                evidence=evidence,
-                update_current_role=True,
-                update_summary=True,
-                update_competencies=True,
-                update_tools=True,
-            )
+            out_dir = TAILORED_DIR / _safe_filename(entry.company, entry.title)
+            paths = write_outputs(outcome, job, out_dir, safe_filename(entry.company, entry.title))
 
-            # Save DOCX to data/tailored/{company}_{title}/
-            safe_name = _safe_filename(entry.company, entry.title)
-            out_dir = TAILORED_DIR / safe_name
-            out_dir.mkdir(parents=True, exist_ok=True)
-            docx_path = out_dir / "resume.docx"
-            txt_path = out_dir / "resume.txt"
-
-            # Save plain text version always
-            txt_path.write_text(tailored_text, encoding="utf-8")
-
-            # Save DOCX if document_handler supports it
-            try:
-                save_docx(tailored_text, str(docx_path))
-                output_path = str(docx_path)
-            except Exception:
-                output_path = str(txt_path)
-
-            entry.resume_ready(output_path)
+            entry.resume_ready(str(paths["docx"]))
+            entry._set("tailored_resume_text_path", str(paths["md"]))
+            entry._set("tailored_resume_notes_path", str(paths["notes"]))
+            # "ready" = passed every fact check; "needs_review" = issues listed below.
+            entry._set("resume_check", outcome.status)
+            entry._set("resume_issues", outcome.issues[:10])
+            entry._set("resume_keywords_added", outcome.keywords_added[:15])
+            entry._set("resume_keywords_not_added",
+                       [k.get("keyword", "") for k in outcome.keywords_not_added][:15])
+            entry._set("resume_model", agent.model)
+            entry._set("resume_feedback_applied", feedback)
+            entry._set("tailoring_error", "")
             self.queue.update(entry)
             self.save()
-            log.info("Tailored resume saved: %s", output_path)
-            return output_path
+            log.info("Tailored resume saved: %s (%s)", paths["docx"], outcome.status)
+            return str(paths["docx"])
 
         except Exception as exc:
-            log.error("Tailoring failed for %s: %s", job_id, exc)
-            entry._set("status", JobStatus.approved.value)  # Roll back
-            entry._set("tailoring_error", str(exc))
-            self.queue.update(entry)
-            self.save()
+            fail(str(exc)[:300])
             return None
 
     # ─────────────────────────────────────────────────────────────────────
@@ -245,43 +264,61 @@ class CoordinatorAgent:
         self.save()
         return True
 
-    def submit_job(self, job_id: str, dry_run: bool = False) -> dict:
+    def prefill_application(self, job_id: str, keep_open: bool = True, agent=None) -> dict:
         """
-        Gate 3: Trigger Submission Agent.
-        Always requires human confirmation in the UI before calling this.
+        Gate 3: open the application form in a browser and pre-fill it.
 
-        Returns result dict with keys: success, confirmation, error
+        Nothing is submitted. The candidate finishes the form and clicks Submit
+        herself, then confirms with mark_applied(). The job stays in
+        `submission_approved` until she does.
+
+        Returns the Submission Agent's result dict (success, fields_filled,
+        fields_skipped, screenshot, error).
         """
         entry = self.queue.get(job_id)
-        if not entry or entry.status != JobStatus.submission_approved:
-            return {"success": False, "error": "Job not in submission_approved state"}
+        if not entry or entry.status not in (JobStatus.submission_approved,
+                                             JobStatus.submission_failed):
+            return {"success": False, "error": "Job is not approved for submission"}
 
         resume_path = entry.tailored_resume_path
         if not resume_path or not Path(resume_path).exists():
             return {"success": False, "error": f"Resume file not found: {resume_path}"}
 
-        entry.start_submitting()
-        self.queue.update(entry)
-        self.save()
-
-        from app.agents.submission_agent import SubmissionAgent
-        agent = SubmissionAgent()
-        result = agent.submit(
+        if agent is None:
+            from app.agents.submission_agent import SubmissionAgent
+            agent = SubmissionAgent()
+        result = agent.prefill(
             url=entry.url,
             resume_path=Path(resume_path),
             company=entry.company,
             title=entry.title,
-            dry_run=dry_run,
+            keep_open=keep_open,
         )
 
-        if result["success"]:
-            entry.mark_submitted(result.get("confirmation", ""))
-        else:
-            entry.mark_submission_failed(result.get("error", "Unknown error"))
-
+        entry._set("status", JobStatus.submission_approved.value)
+        entry._set("prefilled_at", _now())
+        entry._set("prefill_fields", result.get("fields_filled", []))
+        entry._set("submission_error", "" if result.get("success") else result.get("error", ""))
         self.queue.update(entry)
         self.save()
         return result
+
+    def mark_applied(self, job_id: str, note: str = "") -> bool:
+        """The candidate confirms she submitted the application herself."""
+        entry = self.queue.get(job_id)
+        if not entry or entry.status not in (JobStatus.submission_approved,
+                                             JobStatus.submission_failed):
+            return False
+        entry.mark_submitted(note or "Submitted by candidate")
+        entry._set("submission_error", "")
+        self.queue.update(entry)
+        self.save()
+        log.info("Marked as applied: %s", job_id)
+        return True
+
+    def submit_job(self, job_id: str, dry_run: bool = True) -> dict:
+        """Deprecated name kept for older callers. Pre-fills only; never submits."""
+        return self.prefill_application(job_id, keep_open=not dry_run)
 
     # ─────────────────────────────────────────────────────────────────────
     # Queries for UI

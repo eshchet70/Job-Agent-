@@ -46,6 +46,25 @@ Tailored resumes (`.docx` + `.md` + a notes file listing keywords added and JD r
 - Adjust `title_filters`, `adzuna_queries` and `locations` in the same file.
 - Run locally: `python -m app.scout daily` (or `run`, `resumes`, `dashboard` individually).
 
+## Coordinator workflow (local app)
+
+The Coordinator screen in the Streamlit app walks each scouted job through three gates:
+
+1. **Gate 1 — approve or skip.** Jobs the scout later drops (posting closed, or outside your location filters) are skipped automatically on the next *Sync from Scout*.
+2. **Gate 2 — resume.** *Tailor Resume* runs the Claude resume agent: it rewrites the master resume using only facts from `data/master_resume.txt` and the evidence library's `safe_claims`, then fact-checks the draft. The screen shows whether the fact check passed, what to review if it didn't, and which job requirements were left out for lack of evidence. *Re-tailor* sends your notes back to the agent for a new draft.
+3. **Gate 3 — apply.** *Open & pre-fill application* opens the form in a browser window (Ashby, Greenhouse, Lever), fills your contact details and attaches the tailored resume. **It never clicks Submit.** You answer the employer's questions, submit it yourself, close the window, and click *I submitted it — mark as applied*.
+
+After that, log interview rounds on the same screen and run the AI assessment.
+
+### Keys for the local app
+
+```bash
+cp .env.example .env        # then paste your keys into .env (it is git-ignored)
+python -m app.scout llm-check   # one small Claude call: confirms the key and model work
+```
+
+Without `ANTHROPIC_API_KEY` the resume agent and interview assessment do not run, and the app says so. Without the Adzuna keys the scout searches only the company watchlist. Pre-fill needs `pip install -e .[submission] && playwright install chromium`.
+
 ## Local setup
 ```bash
 python3.11 -m venv .venv

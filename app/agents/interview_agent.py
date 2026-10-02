@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -29,7 +28,7 @@ log = logging.getLogger("interview_agent")
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 INTERVIEWS_DIR = ROOT / "data" / "interviews"
-DEFAULT_MODEL = "claude-sonnet-4-5"
+from app.agents.llm import DEFAULT_MODEL, get_model, has_api_key, make_client, structured_call  # noqa: E402,F401
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -351,8 +350,9 @@ class InterviewAgent:
         assessment = agent.assess(rec, jd_text=jd_text, must_haves=must_haves)
     """
 
-    def __init__(self, model: str = None):
-        self.model = model or os.getenv("ANTHROPIC_MODEL", DEFAULT_MODEL)
+    def __init__(self, model: str = None, client=None):
+        self.model = get_model(model)
+        self._client = client     # tests inject a fake; otherwise created on first use
 
     # ── Record Management ─────────────────────────────────────────────────
 
@@ -438,52 +438,26 @@ class InterviewAgent:
             log.info("Returning cached assessment for %s", record.job_id)
             return record.last_assessment
 
-        api_key = os.getenv("ANTHROPIC_API_KEY", "")
-        if not api_key:
-            return self._placeholder_assessment(record)
+        if self._client is None and not has_api_key():
+            return self._placeholder_assessment(
+                record, reason="ANTHROPIC_API_KEY is not set. Add it to the .env file in the "
+                               "project folder and restart the app.")
 
         try:
-            import anthropic
-            client = anthropic.Anthropic(api_key=api_key)
+            client = self._client or make_client()
             prompt = self._build_assessment_prompt(record, jd_text, must_haves or [])
-
-            response = client.messages.create(
-                model=self.model,
-                max_tokens=4096,
-                temperature=1,   # Required for extended thinking
-                thinking={
-                    "type": "enabled",
-                    "budget_tokens": 2000,
-                },
-                messages=[{"role": "user", "content": prompt}],
-                tools=[{
-                    "name": "interview_assessment",
-                    "description": "Structured assessment of the interview record",
-                    "input_schema": ASSESSMENT_SCHEMA,
-                }],
-                tool_choice={"type": "tool", "name": "interview_assessment"},
-            )
-
-            # Extract tool result
-            assessment = None
-            for block in response.content:
-                if block.type == "tool_use" and block.name == "interview_assessment":
-                    assessment = block.input
-                    break
-
-            if assessment:
-                record.last_assessment = assessment
-                record.last_assessed_at = _now()
-                self.save(record)
-                log.info("Assessment complete for %s — %s", record.company, record.title)
-                return assessment
-
-        except anthropic.AuthenticationError:
-            log.warning("Invalid ANTHROPIC_API_KEY — returning placeholder assessment")
-        except Exception as exc:
+            assessment = structured_call(client, self.model, system="", user=prompt,
+                                         schema=ASSESSMENT_SCHEMA, max_tokens=16000)
+        except Exception as exc:  # auth, network, unknown model, cut-off answer
             log.error("Assessment failed: %s", exc, exc_info=True)
+            return self._placeholder_assessment(
+                record, reason=f"The AI assessment failed: {type(exc).__name__}: {str(exc)[:300]}")
 
-        return self._placeholder_assessment(record)
+        record.last_assessment = assessment
+        record.last_assessed_at = _now()
+        self.save(record)
+        log.info("Assessment complete for %s — %s", record.company, record.title)
+        return assessment
 
     # ── Persistence ───────────────────────────────────────────────────────
 
@@ -570,10 +544,15 @@ Assess:
 3. What specific actions should the candidate take next?
 4. If there is another round: what should the candidate prepare for?
 
-Use the interview_assessment tool to return your structured assessment."""
+Return your structured assessment. Score each dimension from 0 to 10."""
 
-    def _placeholder_assessment(self, record: InterviewRecord) -> dict:
-        """Deterministic fallback when no API key is configured."""
+    def _placeholder_assessment(self, record: InterviewRecord, reason: str = "") -> dict:
+        """
+        Deterministic fallback when the AI assessment could not run. `reason`
+        says why (missing key, API error) and is shown to the user; the result
+        is never cached, so the next attempt calls the model again.
+        """
+        reason = reason or "The AI assessment has not run."
         rounds = record.rounds
         passed = [r for r in rounds if r.outcome == "passed"]
         pending = [r for r in rounds if r.outcome == "pending"]
@@ -599,12 +578,12 @@ Use the interview_assessment tool to return your structured assessment."""
             "overall_impression": (
                 f"{len(rounds)} round(s) logged for {record.company}. "
                 f"{len(passed)} passed, {len(pending)} pending, {len(rejected)} rejected. "
-                "Add ANTHROPIC_API_KEY for a detailed AI-powered assessment."
+                f"{reason}"
             ),
             "likelihood_to_proceed": likelihood,
             "likelihood_rationale": f"Based on {len(passed)} passed rounds and {len(pending)} pending.",
             "dimension_scores": {
-                "communication": {"score": 0, "rationale": "Requires AI assessment — add ANTHROPIC_API_KEY"},
+                "communication": {"score": 0, "rationale": "Requires AI assessment"},
                 "technical_fit": {"score": 0, "rationale": "Requires AI assessment"},
                 "leadership_fit": {"score": 0, "rationale": "Requires AI assessment"},
                 "cultural_fit": {"score": 0, "rationale": "Requires AI assessment"},
@@ -613,12 +592,11 @@ Use the interview_assessment tool to return your structured assessment."""
             "positive_signals": signals,
             "concerning_signals": [f"Round {r.round_number} marked rejected" for r in rejected],
             "neutral_signals": [],
-            "gaps_identified": [] if has_notes else ["No candidate notes recorded — add interview notes for AI assessment"],
+            "gaps_identified": [] if has_notes else ["No candidate notes recorded — add interview notes for the AI assessment"],
             "strengths_demonstrated": [],
             "follow_up_actions": [
                 "Send a thank-you note within 24 hours of each round",
                 "Follow up with the recruiter if no response in 5 business days",
-                "Add ANTHROPIC_API_KEY to enable AI-powered assessment",
             ],
             "next_round_prep": [],
             "thank_you_note_points": [
@@ -629,6 +607,7 @@ Use the interview_assessment tool to return your structured assessment."""
             "process_stage": f"Round {len(rounds)} of unknown total",
             "estimated_timeline": "Typically 1-2 weeks for a decision after the final round",
             "_placeholder": True,
+            "_error": reason,
         }
 
 

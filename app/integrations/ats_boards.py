@@ -81,18 +81,40 @@ def detect_work_model(*parts: Optional[str]) -> Optional[str]:
 _CANADA_HINTS = ("canada", "toronto", "ontario", "vancouver", "montreal", "montréal", "ottawa",
                  "calgary", "waterloo", "kitchener", "mississauga", "british columbia", "quebec",
                  "québec", "alberta", ", on", ", bc", ", ab", ", qc")
-_US_HINTS = ("united states", "usa", "u.s.", "new york", "san francisco", "seattle", "california",
+_US_HINTS = ("united states", "new york", "san francisco", "seattle", "california",
              "texas", ", ny", ", ca", ", wa", ", tx", ", ma", ", il", "chicago", "boston", "austin")
+# "US" / "USA" / "U.S." as a standalone token ("Remote - US: Select locations").
+_US_TOKEN = re.compile(r"(?<![A-Za-z])(?:USA?|U\.S\.A?\.?)(?![A-Za-z])")
+# Places that are clearly neither Canada nor the US. Not exhaustive: anything
+# unrecognised stays None and the location filter decides what to do with it.
+_OTHER_HINTS = ("united kingdom", "london", "uk", "ireland", "dublin", "germany", "berlin", "munich",
+                "france", "paris", "netherlands", "amsterdam", "spain", "poland", "sweden",
+                "switzerland", "emea", "europe", "india", "bangalore", "bengaluru", "hyderabad",
+                "singapore", "japan", "tokyo", "korea", "seoul", "china", "australia", "sydney",
+                "apac", "asia", "israel", "tel aviv", "brazil", "mexico", "latam", "dubai", "uae")
+
+
+def _has_word(text: str, needle: str) -> bool:
+    return re.search(r"(?<![a-z])" + re.escape(needle) + r"(?![a-z])", text) is not None
 
 
 def guess_country(location: Optional[str]) -> Optional[str]:
+    """
+    Country implied by a posting's own location text.
+
+    A posting that lists several locations counts as Canada if any of them is
+    Canadian. Returns "Canada", "United States", "Other", or None when the
+    text gives no usable signal (e.g. just "Remote").
+    """
     if not location:
         return None
     lower = location.lower()
     if any(h in lower for h in _CANADA_HINTS):
         return "Canada"
-    if any(h in lower for h in _US_HINTS):
+    if any(h in lower for h in _US_HINTS) or _US_TOKEN.search(location):
         return "United States"
+    if any(_has_word(lower, h) for h in _OTHER_HINTS):
+        return "Other"
     return None
 
 
@@ -113,6 +135,9 @@ def fetch_greenhouse(slug: str, company: str, client: Optional[httpx.Client] = N
                      client, params={"content": "true"})
     jobs = []
     for j in data.get("jobs", []):
+        # Use the posting's own location. The board-level "offices" list covers
+        # every office the company has, so it is only a fallback when the
+        # posting states no location at all.
         location = (j.get("location") or {}).get("name")
         offices = ", ".join(o.get("name", "") for o in j.get("offices", []) if o.get("name"))
         loc = location or offices or None
@@ -123,7 +148,7 @@ def fetch_greenhouse(slug: str, company: str, client: Optional[httpx.Client] = N
             title=(j.get("title") or "").strip(),
             company=company,
             location=loc,
-            country=guess_country(f"{loc or ''} {offices}"),
+            country=guess_country(loc),
             work_model=detect_work_model(loc, j.get("title")),
             url=j.get("absolute_url") or "",
             source_type="official_career",
