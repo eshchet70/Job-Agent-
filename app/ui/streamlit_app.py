@@ -691,7 +691,6 @@ def _render_brief(brief, in_coordinator: bool = False):
                         st.session_state[f"coord_show_analysis_{coord_entry.id}"] = False
                         st.toast(f"Approved {c_company} in Coordinator!", icon="✅")
                         st.session_state["nav_screen"] = "🎯 Coordinator"
-                        st.session_state["nav_screen_radio"] = "🎯 Coordinator"
                         st.rerun()
                 with c_btn2:
                     if st.button("⏭ Skip Job", key=f"brief_coord_skip_{key_suffix}", use_container_width=True):
@@ -700,7 +699,6 @@ def _render_brief(brief, in_coordinator: bool = False):
                         st.session_state[f"coord_show_analysis_{coord_entry.id}"] = False
                         st.toast(f"Skipped {c_company} in Coordinator", icon="⏭")
                         st.session_state["nav_screen"] = "🎯 Coordinator"
-                        st.session_state["nav_screen_radio"] = "🎯 Coordinator"
                         st.rerun()
                 with c_btn3:
                     btn3_label = "✖️ Close Analysis" if is_in_coord else "🎯 Open in Coordinator"
@@ -709,7 +707,6 @@ def _render_brief(brief, in_coordinator: bool = False):
                         st.session_state.pop(f"coord_show_analysis_{coord_entry.id}", None)
                         st.session_state[f"coord_show_analysis_{coord_entry.id}"] = False
                         st.session_state["nav_screen"] = "🎯 Coordinator"
-                        st.session_state["nav_screen_radio"] = "🎯 Coordinator"
                         if is_in_coord:
                             st.toast("Closed analysis view", icon="↩️")
                         else:
@@ -725,7 +722,6 @@ def _render_brief(brief, in_coordinator: bool = False):
                         st.session_state.pop(f"coord_show_analysis_{coord_entry.id}", None)
                         st.session_state[f"coord_show_analysis_{coord_entry.id}"] = False
                         st.session_state["nav_screen"] = "🎯 Coordinator"
-                        st.session_state["nav_screen_radio"] = "🎯 Coordinator"
                         st.rerun()
             else:
                 c_head, c_btn = st.columns([4, 2])
@@ -737,7 +733,6 @@ def _render_brief(brief, in_coordinator: bool = False):
                         st.session_state.pop(f"coord_show_analysis_{coord_entry.id}", None)
                         st.session_state[f"coord_show_analysis_{coord_entry.id}"] = False
                         st.session_state["nav_screen"] = "🎯 Coordinator"
-                        st.session_state["nav_screen_radio"] = "🎯 Coordinator"
                         st.rerun()
         else:
             c_add1, c_add2 = st.columns([4, 2])
