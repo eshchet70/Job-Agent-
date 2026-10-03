@@ -14,6 +14,7 @@ import re
 from datetime import datetime, timezone
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 st.set_page_config(
     page_title="Job Search Operating Agent",
@@ -519,8 +520,81 @@ pre, code {
     white-space: pre-wrap !important;
     word-break: break-word !important;
 }
+
+/* Sidebar Expand Button High-Visibility */
+button[data-testid="stExpandSidebarButton"],
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="stSidebarCollapseButton"] {
+    background: #0284c7 !important;
+    color: #ffffff !important;
+    border-radius: 8px !important;
+    padding: 6px 12px !important;
+    margin: 8px !important;
+    border: 1px solid #38bdf8 !important;
+    box-shadow: 0 0 14px rgba(56, 189, 248, 0.5) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    visibility: visible !important;
+    z-index: 999999 !important;
+}
+
+button[data-testid="stExpandSidebarButton"]:hover,
+[data-testid="stSidebarCollapsedControl"]:hover {
+    background: #0369a1 !important;
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.8) !important;
+}
+
+button[data-testid="stExpandSidebarButton"] svg,
+[data-testid="stSidebarCollapsedControl"] svg {
+    fill: #ffffff !important;
+    stroke: #ffffff !important;
+    color: #ffffff !important;
+    width: 20px !important;
+    height: 20px !important;
+}
 </style>
 """, unsafe_allow_html=True)
+
+# Auto-expand sidebar if collapsed in browser localStorage
+components.html(
+    """
+    <script>
+    function restoreSidebar() {
+        try {
+            const p = window.parent;
+            if (!p) return;
+            // 1. Reset localStorage collapsed flags
+            if (p.localStorage) {
+                for (let i = 0; i < p.localStorage.length; i++) {
+                    const k = p.localStorage.key(i);
+                    if (k && k.indexOf("stSidebarCollapsed") !== -1) {
+                        p.localStorage.setItem(k, "false");
+                    }
+                }
+            }
+            // 2. Click expand button if collapsed
+            const doc = p.document;
+            if (doc) {
+                const expandBtn = doc.querySelector('button[data-testid="stExpandSidebarButton"]') ||
+                                  doc.querySelector('[data-testid="stSidebarCollapseButton"] button') ||
+                                  doc.querySelector('[data-testid="stSidebarCollapsedControl"] button') ||
+                                  doc.querySelector('button[aria-label="Expand sidebar"]');
+                if (expandBtn) {
+                    expandBtn.click();
+                }
+            }
+        } catch (e) {
+            console.debug("Sidebar expand error:", e);
+        }
+    }
+    restoreSidebar();
+    setTimeout(restoreSidebar, 200);
+    setTimeout(restoreSidebar, 600);
+    </script>
+    """,
+    height=0,
+    width=0,
+)
 
 
 # =============================================================================

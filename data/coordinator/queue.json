@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-10-02T21:55:19+00:00",
+  "updated_at": "2026-10-03T03:16:49+00:00",
   "entries": {
     "ashby:cohere:41cb2a12-e33a-4368-a9f8-0ae0d19c023e": {
       "id": "ashby:cohere:41cb2a12-e33a-4368-a9f8-0ae0d19c023e",
@@ -322,6 +322,36 @@
       ],
       "missing_supported": [],
       "added_at": "2026-10-02T04:14:35+00:00"
+    },
+    "greenhouse:instacart:8249753": {
+      "id": "greenhouse:instacart:8249753",
+      "status": "discovered",
+      "company": "Instacart",
+      "title": "Senior Design Program Manager II",
+      "url": "https://instacart.careers/job/?gh_jid=8249753",
+      "tier": "tier_1",
+      "fit_score": 87.5,
+      "ats_readiness": 69.1,
+      "location": "Canada - Remote (ON, AB, BC, or NS Only)",
+      "posted_date": "2026-10-02",
+      "description": "We're transforming the grocery industry \n\n At Instacart, we invite the world to share love through food because we believe everyone should have access to the food they love and more time to enjoy it together. Where others see a simple need for grocery delivery, we see exciting complexity and endless opportunity to serve the varied needs of our community. We work to deliver an essential service that customers rely on to get their groceries and household goods, while also offering safe and flexibl",
+      "matched_keywords": [
+        "technical program management",
+        "roadmap",
+        "stakeholder management",
+        "cross-functional",
+        "safe",
+        "jira",
+        "program manager",
+        "AI",
+        "TCO",
+        "operating model",
+        "senior",
+        "lead",
+        "automation"
+      ],
+      "missing_supported": [],
+      "added_at": "2026-10-03T03:16:49+00:00"
     }
   }
 }
