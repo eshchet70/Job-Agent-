@@ -26,6 +26,8 @@ st.set_page_config(
 import importlib
 from pathlib import Path
 
+import pandas as pd
+
 from app.config import settings
 import app.db.database as db_module
 import app.db.repository as repo

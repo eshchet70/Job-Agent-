@@ -309,3 +309,24 @@ def create_pdf(text: str, title: str = "Resume") -> bytes:
 
     doc.build(story)
     return out.getvalue()
+
+
+def save_docx(text: str, file_path: str, title: str = "Resume") -> str:
+    """Generate and write a formatted Word (.docx) document to file_path."""
+    from pathlib import Path
+    docx_bytes = create_docx(text, title=title)
+    p = Path(file_path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_bytes(docx_bytes)
+    return str(p)
+
+
+def save_pdf(text: str, file_path: str, title: str = "Resume") -> str:
+    """Generate and write a formatted PDF (.pdf) document to file_path."""
+    from pathlib import Path
+    pdf_bytes = create_pdf(text, title=title)
+    p = Path(file_path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_bytes(pdf_bytes)
+    return str(p)
+
