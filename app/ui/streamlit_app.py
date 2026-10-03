@@ -525,12 +525,15 @@ pre, code {
 # Helper: render ApplicationBrief results
 # =============================================================================
 
-def _render_brief(brief):
+def _render_brief(brief, in_coordinator: bool = False):
     """Render a full ApplicationBrief result."""
     job = brief.job
     fit = brief.fit
     gate = brief.gate
     ats = brief.ats
+
+    cur_screen = st.session_state.get("nav_screen_radio", "")
+    is_in_coord = in_coordinator or (cur_screen == "🎯 Coordinator")
 
     st.divider()
 
@@ -608,34 +611,57 @@ def _render_brief(brief):
                 with c_btn1:
                     if st.button("✅ Approve for Tailoring", key=f"brief_coord_appr_{key_suffix}", type="primary", use_container_width=True):
                         coord_agent.approve_job(coord_entry.id)
+                        st.session_state.pop(f"coord_show_analysis_{coord_entry.id}", None)
+                        st.session_state[f"coord_show_analysis_{coord_entry.id}"] = False
                         st.toast(f"Approved {c_company} in Coordinator!", icon="✅")
                         st.session_state["nav_screen"] = "🎯 Coordinator"
+                        st.session_state["nav_screen_radio"] = "🎯 Coordinator"
                         st.rerun()
                 with c_btn2:
                     if st.button("⏭ Skip Job", key=f"brief_coord_skip_{key_suffix}", use_container_width=True):
                         coord_agent.skip_job(coord_entry.id, "Skipped from Job Analysis")
+                        st.session_state.pop(f"coord_show_analysis_{coord_entry.id}", None)
+                        st.session_state[f"coord_show_analysis_{coord_entry.id}"] = False
                         st.toast(f"Skipped {c_company} in Coordinator", icon="⏭")
                         st.session_state["nav_screen"] = "🎯 Coordinator"
+                        st.session_state["nav_screen_radio"] = "🎯 Coordinator"
                         st.rerun()
                 with c_btn3:
-                    if st.button("🎯 Open in Coordinator", key=f"brief_coord_goto_{key_suffix}", use_container_width=True):
+                    btn3_label = "✖️ Close Analysis" if is_in_coord else "🎯 Open in Coordinator"
+                    btn3_help = "Close analysis and return to Coordinator queue" if is_in_coord else "Switch to Coordinator screen to manage this job"
+                    if st.button(btn3_label, key=f"brief_coord_goto_{key_suffix}", use_container_width=True, help=btn3_help):
+                        st.session_state.pop(f"coord_show_analysis_{coord_entry.id}", None)
+                        st.session_state[f"coord_show_analysis_{coord_entry.id}"] = False
                         st.session_state["nav_screen"] = "🎯 Coordinator"
+                        st.session_state["nav_screen_radio"] = "🎯 Coordinator"
+                        if is_in_coord:
+                            st.toast("Closed analysis view", icon="↩️")
+                        else:
+                            st.toast(f"Opening Coordinator for {c_company}…", icon="🎯")
                         st.rerun()
             elif q_status == JobStatus.approved:
                 c_head, c_btn = st.columns([4, 2])
                 with c_head:
                     st.markdown(f"**🎯 Coordinator Status:** ✅ **Approved** (Ready for hiring contacts & resume tailoring)")
                 with c_btn:
-                    if st.button("🎯 Open in Coordinator Pipeline", key=f"brief_coord_appr_goto_{key_suffix}", type="primary", use_container_width=True):
+                    btn_appr_label = "✖️ Close Analysis" if is_in_coord else "🎯 Open in Coordinator Pipeline"
+                    if st.button(btn_appr_label, key=f"brief_coord_appr_goto_{key_suffix}", type="primary", use_container_width=True):
+                        st.session_state.pop(f"coord_show_analysis_{coord_entry.id}", None)
+                        st.session_state[f"coord_show_analysis_{coord_entry.id}"] = False
                         st.session_state["nav_screen"] = "🎯 Coordinator"
+                        st.session_state["nav_screen_radio"] = "🎯 Coordinator"
                         st.rerun()
             else:
                 c_head, c_btn = st.columns([4, 2])
                 with c_head:
                     st.markdown(f"**🎯 Coordinator Status:** ℹ️ **{q_status.value.replace('_', ' ').title()}**")
                 with c_btn:
-                    if st.button("🎯 View in Coordinator Pipeline", key=f"brief_coord_view_goto_{key_suffix}", use_container_width=True):
+                    btn_oth_label = "✖️ Close Analysis" if is_in_coord else "🎯 View in Coordinator Pipeline"
+                    if st.button(btn_oth_label, key=f"brief_coord_view_goto_{key_suffix}", use_container_width=True):
+                        st.session_state.pop(f"coord_show_analysis_{coord_entry.id}", None)
+                        st.session_state[f"coord_show_analysis_{coord_entry.id}"] = False
                         st.session_state["nav_screen"] = "🎯 Coordinator"
+                        st.session_state["nav_screen_radio"] = "🎯 Coordinator"
                         st.rerun()
         else:
             c_add1, c_add2 = st.columns([4, 2])
@@ -3073,7 +3099,7 @@ elif screen == "🎯 Coordinator":
                                     st.error(f"Analysis failed: {e}")
 
                     if brief:
-                        _render_brief(brief)
+                        _render_brief(brief, in_coordinator=True)
                     elif not jd_text:
                         st.warning("No full job description found in Scout store. You can open the Analyze Job screen to paste the JD.")
                         if st.button("📝 Open Analyze Job Screen to Paste JD", key=f"paste_jd_{entry.id}"):

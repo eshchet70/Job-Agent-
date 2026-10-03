@@ -910,6 +910,96 @@
     "Palantir": 319,
     "Spotify": 82
    }
+  },
+  {
+   "started_at": "2026-10-02T19:47:36+00:00",
+   "fetched": 6548,
+   "passed_filter": 15,
+   "new": 0,
+   "updated": 13,
+   "closed": 0,
+   "new_tier1": 0,
+   "new_tier2": 0,
+   "source_errors": [
+    {
+     "source": "adzuna",
+     "company": "—",
+     "error": "not configured (set ADZUNA_APP_ID / ADZUNA_APP_KEY)"
+    }
+   ],
+   "sources": {
+    "Wealthsimple": 44,
+    "Cohere": 136,
+    "1Password": 68,
+    "KOHO": 9,
+    "Ramp": 158,
+    "Notion": 137,
+    "OpenAI": 829,
+    "Faire": 79,
+    "Instacart": 129,
+    "Okta": 369,
+    "Scale AI": 192,
+    "Coinbase": 225,
+    "Databricks": 884,
+    "Tenstorrent": 129,
+    "Anthropic": 638,
+    "Stripe": 712,
+    "Airbnb": 152,
+    "Dropbox": 40,
+    "Pinterest": 168,
+    "Lyft": 190,
+    "Cloudflare": 404,
+    "Twilio": 130,
+    "Figma": 163,
+    "Robinhood": 162,
+    "Palantir": 319,
+    "Spotify": 82
+   }
+  },
+  {
+   "started_at": "2026-10-02T19:53:11+00:00",
+   "fetched": 6548,
+   "passed_filter": 15,
+   "new": 0,
+   "updated": 13,
+   "closed": 0,
+   "new_tier1": 0,
+   "new_tier2": 0,
+   "source_errors": [
+    {
+     "source": "adzuna",
+     "company": "—",
+     "error": "not configured (set ADZUNA_APP_ID / ADZUNA_APP_KEY)"
+    }
+   ],
+   "sources": {
+    "Wealthsimple": 44,
+    "Cohere": 136,
+    "1Password": 68,
+    "KOHO": 9,
+    "Ramp": 158,
+    "Notion": 137,
+    "OpenAI": 828,
+    "Faire": 79,
+    "Instacart": 129,
+    "Okta": 369,
+    "Scale AI": 192,
+    "Coinbase": 225,
+    "Databricks": 884,
+    "Tenstorrent": 129,
+    "Anthropic": 638,
+    "Stripe": 713,
+    "Airbnb": 152,
+    "Dropbox": 40,
+    "Pinterest": 168,
+    "Lyft": 190,
+    "Cloudflare": 405,
+    "Twilio": 129,
+    "Figma": 163,
+    "Robinhood": 162,
+    "Palantir": 319,
+    "Spotify": 82
+   }
   }
  ]
 }

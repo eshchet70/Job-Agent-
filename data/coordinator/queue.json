@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-10-02T19:38:13+00:00",
+  "updated_at": "2026-10-02T21:55:19+00:00",
   "entries": {
     "ashby:cohere:41cb2a12-e33a-4368-a9f8-0ae0d19c023e": {
       "id": "ashby:cohere:41cb2a12-e33a-4368-a9f8-0ae0d19c023e",
@@ -52,7 +52,7 @@
     },
     "ashby:openai:6b8eed3a-d549-4df8-9ac7-134d4d52c600": {
       "id": "ashby:openai:6b8eed3a-d549-4df8-9ac7-134d4d52c600",
-      "status": "discovered",
+      "status": "approved",
       "company": "OpenAI",
       "title": "Support Delivery Lead - Toronto",
       "url": "https://jobs.ashbyhq.com/openai/6b8eed3a-d549-4df8-9ac7-134d4d52c600",
@@ -73,11 +73,12 @@
         "automation"
       ],
       "missing_supported": [],
-      "added_at": "2026-10-02T04:14:35+00:00"
+      "added_at": "2026-10-02T04:14:35+00:00",
+      "approved_at": "2026-10-02T19:57:48+00:00"
     },
     "greenhouse:dropbox:8094537": {
       "id": "greenhouse:dropbox:8094537",
-      "status": "discovered",
+      "status": "approved",
       "company": "Dropbox",
       "title": "Renewals Strategy Principal Program Manager",
       "url": "https://jobs.dropbox.com/listing/8094537?gh_jid=8094537",
@@ -100,7 +101,8 @@
         "automation"
       ],
       "missing_supported": [],
-      "added_at": "2026-10-02T04:14:35+00:00"
+      "added_at": "2026-10-02T04:14:35+00:00",
+      "approved_at": "2026-10-02T19:53:55+00:00"
     },
     "greenhouse:dropbox:8234201": {
       "id": "greenhouse:dropbox:8234201",
@@ -159,7 +161,7 @@
     },
     "greenhouse:okta:8157043": {
       "id": "greenhouse:okta:8157043",
-      "status": "discovered",
+      "status": "approved",
       "company": "Okta",
       "title": "Senior Technical Program Manager (Auth0)",
       "url": "https://www.okta.com/company/careers/opportunity/8157043?gh_jid=8157043",
@@ -180,7 +182,8 @@
         "senior"
       ],
       "missing_supported": [],
-      "added_at": "2026-10-02T04:14:35+00:00"
+      "added_at": "2026-10-02T04:14:35+00:00",
+      "approved_at": "2026-10-02T19:53:35+00:00"
     },
     "greenhouse:okta:8194325": {
       "id": "greenhouse:okta:8194325",
@@ -243,7 +246,7 @@
     },
     "greenhouse:stripe:8114397": {
       "id": "greenhouse:stripe:8114397",
-      "status": "discovered",
+      "status": "approved",
       "company": "Stripe",
       "title": "Technical Program Manager, Extensibility",
       "url": "https://stripe.com/jobs/search?gh_jid=8114397",
@@ -264,11 +267,14 @@
         "lead"
       ],
       "missing_supported": [],
-      "added_at": "2026-10-02T04:14:35+00:00"
+      "added_at": "2026-10-02T04:14:35+00:00",
+      "approved_at": "2026-10-02T21:53:43+00:00",
+      "tailoring_started_at": "2026-10-02T21:55:19+00:00",
+      "tailoring_error": "cannot import name 'save_docx' from 'app.services.document_handler' (/Users/eshchet/DEV/Job Agent/job-search-agent/app/services/document_handler.py)"
     },
     "greenhouse:tenstorrent:5185558007": {
       "id": "greenhouse:tenstorrent:5185558007",
-      "status": "discovered",
+      "status": "skipped",
       "company": "Tenstorrent",
       "title": "Sr. Staff Program Manager & Chief of Staff, Operations",
       "url": "https://job-boards.greenhouse.io/tenstorrent/jobs/5185558007",
@@ -288,7 +294,9 @@
         "lead"
       ],
       "missing_supported": [],
-      "added_at": "2026-10-02T04:14:35+00:00"
+      "added_at": "2026-10-02T04:14:35+00:00",
+      "skipped_at": "2026-10-02T21:54:20+00:00",
+      "skip_reason": "Skipped by user"
     },
     "greenhouse:tenstorrent:5249598007": {
       "id": "greenhouse:tenstorrent:5249598007",
