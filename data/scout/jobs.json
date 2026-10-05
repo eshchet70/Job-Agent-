@@ -14,7 +14,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/01a34bc3-6421-4af2-bf5b-f42e98155dda",
    "posted_date": "2026-09-03",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-04",
+   "last_seen": "2026-10-05",
    "status": "open",
    "flags": [],
    "compensation": "CA$200K – CA$245K • Offers Equity",
@@ -68,7 +68,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/41cb2a12-e33a-4368-a9f8-0ae0d19c023e",
    "posted_date": "2026-09-03",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-04",
+   "last_seen": "2026-10-05",
    "status": "open",
    "flags": [],
    "compensation": "$140K – $220K • Offers Equity • Multiple Ranges",
@@ -113,7 +113,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/582c4a60-14a2-49d5-b4d3-24c4ec50508d",
    "posted_date": "2026-10-03",
    "first_seen": "2026-10-03",
-   "last_seen": "2026-10-04",
+   "last_seen": "2026-10-05",
    "status": "open",
    "flags": [
     "location_unverified"
@@ -163,7 +163,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/cd987666-aeda-4da6-a23c-d84d4231d33b",
    "posted_date": "2026-07-20",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-04",
+   "last_seen": "2026-10-05",
    "status": "open",
    "flags": [
     "location_unverified"
@@ -210,7 +210,7 @@
    "url": "https://jobs.ashbyhq.com/openai/3ae71c21-60dd-42b2-a913-58df05988976",
    "posted_date": "2026-10-02",
    "first_seen": "2026-10-02",
-   "last_seen": "2026-10-04",
+   "last_seen": "2026-10-05",
    "status": "open",
    "flags": [
     "location_unverified"
@@ -260,7 +260,7 @@
    "url": "https://jobs.ashbyhq.com/openai/6b8eed3a-d549-4df8-9ac7-134d4d52c600",
    "posted_date": "2026-08-17",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-04",
+   "last_seen": "2026-10-05",
    "status": "open",
    "flags": [],
    "compensation": "CA$297K – CA$330K • Offers Equity",
@@ -358,7 +358,7 @@
    "url": "https://jobs.dropbox.com/listing/8234201?gh_jid=8234201",
    "posted_date": "2026-10-01",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-04",
+   "last_seen": "2026-10-05",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -405,7 +405,7 @@
    "url": "https://boards.greenhouse.io/figma/jobs/6020719004?gh_jid=6020719004",
    "posted_date": "2026-06-12",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-04",
+   "last_seen": "2026-10-05",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -454,7 +454,7 @@
    "url": "https://instacart.careers/job/?gh_jid=8249753",
    "posted_date": "2026-10-02",
    "first_seen": "2026-10-02",
-   "last_seen": "2026-10-04",
+   "last_seen": "2026-10-05",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -508,7 +508,7 @@
    "url": "https://www.okta.com/company/careers/opportunity/8157043?gh_jid=8157043",
    "posted_date": "2026-08-25",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-04",
+   "last_seen": "2026-10-05",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -555,7 +555,7 @@
    "url": "https://www.okta.com/company/careers/opportunity/8194325?gh_jid=8194325",
    "posted_date": "2026-09-11",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-04",
+   "last_seen": "2026-10-05",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -603,7 +603,7 @@
    "url": "https://www.okta.com/company/careers/opportunity/8205101?gh_jid=8205101",
    "posted_date": "2026-09-18",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-04",
+   "last_seen": "2026-10-05",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -647,6 +647,55 @@
     "evidence": "6 requirement(s) backed by evidence library items: BELL-PORTFOLIO-01, BELL-PAYMENTS-01, AMZN-CATALOG-01."
    }
   },
+  "greenhouse:stripe:8042055": {
+   "id": "greenhouse:stripe:8042055",
+   "identity": "stripe|technical program manager money as a service",
+   "source": "board",
+   "source_key": "greenhouse:stripe",
+   "portal": "Greenhouse",
+   "company": "Stripe",
+   "title": "Technical Program Manager, Money-as-a-Service",
+   "location": "Remote in the US",
+   "country": null,
+   "work_model": "remote",
+   "url": "https://stripe.com/jobs/search?gh_jid=8042055",
+   "posted_date": "2026-07-07",
+   "first_seen": "2026-10-05",
+   "last_seen": "2026-10-05",
+   "status": "open",
+   "flags": [
+    "location_unverified"
+   ],
+   "compensation": null,
+   "description": "Who we are \n\n About Stripe \n\n Stripe is a financial infrastructure platform for businesses. Millions of companies - from the world’s largest enterprises to the most ambitious startups - use Stripe to accept payments, grow their revenue, and accelerate new business opportunities. Our mission is to increase the GDP of the internet, and we have a staggering amount of work ahead. That means you have an unprecedented opportunity to put the global economy within everyone's reach while doing the most important work of your career. \n\n About the team \n\n Money as a Service (MaaS) oversees a diverse portfolio of Stripe's core products and platforms, and our vision is to become the financial operating system for platforms and marketplaces globally. These offerings facilitate the global movement and management of funds for users. The teams that fall under the MaaS umbrella are Connect, Money Management, and Crypto. Together, these teams work to ensure Stripe users have the robust financial infrastructure and tools they need to power their businesses on a global scale.\n\n What you’ll do \n\n As a TPM, you will play a key role leading complex programs across multiple engineering, product and cross-functional (finance, legal, compliance, risk, and other) teams spanning Stripe. You will be responsible for the successful definition, cross-functional strategy, planning and execution of large-scale technical programs that help to solve complex problems and empower Stripe and our users.\n\n Responsibilities \n\n• Drive functional and technical delivery of key team and org-wide programs/initiatives.\n\n• Partner with Engineering Managers, Product Managers and other cross functional partners to define, scope, and drive large programs to conclusion.\n\n• Develop, implement, and iterate on program management techniques, frameworks, and KPIs to achieve goals with well defined success criteria.\n\n• Make substantial improvements to how the teams you work with communicate and operate to significantly increase the productivity and efficiency of the teams.\n\n• Define and produce high quality written proposals, communications and documentation.\n\n• Leverage data and acquired knowledge to drive strategic decisions at an engineering leadership level.\n\n• Create widely circulated plans, driving consistency, clarity and building alignment across teams.\n\n• Help influence peers / leaders and build consensus while dealing with ambiguity.\n\n Who you are \n\n We're looking for someone who meets the minimum requirements to be considered for the role. If you meet these requirements, you are encouraged to apply. The preferred qualifications are a bonus, not a requirement. \n\n Minimum requirements \n\n• 6+ years of software engineering, systems engineering and/or technical program management experience.\n\n• Excellent analytical skills; you digest complex information and make recommendations.\n\n• You have a track record of providing program management during all phases of software development from kick-off to launch, demonstrating critical thinking, challenging the norms and thought leadership.\n\n• You have very strong written and verbal communication skills, building strong relationships with stakeholders, teams and senior leaders around the organization.\n\n• You can drive internal and external process improvements across multiple teams and functions and bring a wealth of experience, opinions, proposals and best practices.\n\n• Experience operating autonomously and leading large-scale efforts across multiple teams and functions, with stakeholders in different disciplines across time zones.\n\n• Ability to understand how functionality comes together (across products and platforms) to deliver value for users, and identify/mitigate delivery risks proactively; can propose and drive a technical solution \n\n• Users-first and customer-focused mindset\n\n Preferred qualifications \n\n• Experience in a global FinTech or banking organization",
+   "role_family": "Technical Program Management",
+   "seniority": "senior",
+   "fit_score": 77.1,
+   "tier": "tier_2",
+   "ats_readiness": 65.6,
+   "barriers": [],
+   "authorization": "eligible",
+   "matched_keywords": [
+    "technical program management",
+    "cross-functional",
+    "program manager",
+    "technical program manager",
+    "KPI",
+    "senior",
+    "lead"
+   ],
+   "missing_supported": [],
+   "missing_unsupported": [
+    "TPM",
+    "process improvement"
+   ],
+   "fit_notes": {
+    "functional": "Role family 'Technical Program Management' aligns well with candidate target families.",
+    "seniority": "Seniority band 'senior' vs candidate senior/lead/director level.",
+    "location_auth": "Role in Toronto / Canada / Remote — strong location match.",
+    "evidence": "3 requirement(s) backed by evidence library items: BELL-PAYMENTS-01, AMZN-CATALOG-01, IBM-CLM-01."
+   }
+  },
   "greenhouse:stripe:8114397": {
    "id": "greenhouse:stripe:8114397",
    "identity": "stripe|technical program manager extensibility",
@@ -661,7 +710,7 @@
    "url": "https://stripe.com/jobs/search?gh_jid=8114397",
    "posted_date": "2026-08-07",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-04",
+   "last_seen": "2026-10-05",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -706,7 +755,7 @@
    "url": "https://job-boards.greenhouse.io/tenstorrent/jobs/5185558007",
    "posted_date": "2026-07-13",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-04",
+   "last_seen": "2026-10-05",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -750,7 +799,7 @@
    "url": "https://job-boards.greenhouse.io/tenstorrent/jobs/5249598007",
    "posted_date": "2026-09-29",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-04",
+   "last_seen": "2026-10-05",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -1234,6 +1283,51 @@
     "Robinhood": 162,
     "Palantir": 319,
     "Spotify": 82
+   }
+  },
+  {
+   "started_at": "2026-10-05T19:24:46+00:00",
+   "fetched": 6548,
+   "passed_filter": 18,
+   "new": 1,
+   "updated": 15,
+   "closed": 0,
+   "new_tier1": 0,
+   "new_tier2": 1,
+   "source_errors": [
+    {
+     "source": "adzuna",
+     "company": "—",
+     "error": "not configured (set ADZUNA_APP_ID / ADZUNA_APP_KEY)"
+    }
+   ],
+   "sources": {
+    "Wealthsimple": 48,
+    "Cohere": 133,
+    "1Password": 69,
+    "KOHO": 8,
+    "Ramp": 159,
+    "Notion": 135,
+    "OpenAI": 830,
+    "Faire": 75,
+    "Instacart": 121,
+    "Okta": 365,
+    "Scale AI": 192,
+    "Coinbase": 226,
+    "Databricks": 889,
+    "Tenstorrent": 131,
+    "Anthropic": 640,
+    "Stripe": 718,
+    "Airbnb": 150,
+    "Dropbox": 40,
+    "Pinterest": 168,
+    "Lyft": 188,
+    "Cloudflare": 412,
+    "Twilio": 129,
+    "Figma": 162,
+    "Robinhood": 161,
+    "Palantir": 318,
+    "Spotify": 81
    }
   }
  ]
