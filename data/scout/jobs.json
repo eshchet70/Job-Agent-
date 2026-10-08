@@ -14,7 +14,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/01a34bc3-6421-4af2-bf5b-f42e98155dda",
    "posted_date": "2026-09-03",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-07",
+   "last_seen": "2026-10-08",
    "status": "open",
    "flags": [],
    "compensation": "CA$200K – CA$245K • Offers Equity",
@@ -68,7 +68,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/41cb2a12-e33a-4368-a9f8-0ae0d19c023e",
    "posted_date": "2026-09-03",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-07",
+   "last_seen": "2026-10-08",
    "status": "open",
    "flags": [],
    "compensation": "$140K – $220K • Offers Equity • Multiple Ranges",
@@ -113,7 +113,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/582c4a60-14a2-49d5-b4d3-24c4ec50508d",
    "posted_date": "2026-10-03",
    "first_seen": "2026-10-03",
-   "last_seen": "2026-10-07",
+   "last_seen": "2026-10-08",
    "status": "open",
    "flags": [
     "location_unverified"
@@ -163,7 +163,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/cd987666-aeda-4da6-a23c-d84d4231d33b",
    "posted_date": "2026-07-20",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-07",
+   "last_seen": "2026-10-08",
    "status": "open",
    "flags": [
     "location_unverified"
@@ -260,7 +260,7 @@
    "url": "https://jobs.ashbyhq.com/openai/6b8eed3a-d549-4df8-9ac7-134d4d52c600",
    "posted_date": "2026-08-17",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-07",
+   "last_seen": "2026-10-08",
    "status": "open",
    "flags": [],
    "compensation": "CA$297K – CA$330K • Offers Equity",
@@ -405,7 +405,7 @@
    "url": "https://boards.greenhouse.io/figma/jobs/6020719004?gh_jid=6020719004",
    "posted_date": "2026-06-12",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-07",
+   "last_seen": "2026-10-08",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -454,7 +454,7 @@
    "url": "https://instacart.careers/job/?gh_jid=8249753",
    "posted_date": "2026-10-02",
    "first_seen": "2026-10-02",
-   "last_seen": "2026-10-07",
+   "last_seen": "2026-10-08",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -508,7 +508,7 @@
    "url": "https://www.okta.com/company/careers/opportunity/8157043?gh_jid=8157043",
    "posted_date": "2026-08-25",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-07",
+   "last_seen": "2026-10-08",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -555,7 +555,7 @@
    "url": "https://www.okta.com/company/careers/opportunity/8194325?gh_jid=8194325",
    "posted_date": "2026-09-11",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-07",
+   "last_seen": "2026-10-08",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -603,7 +603,7 @@
    "url": "https://www.okta.com/company/careers/opportunity/8205101?gh_jid=8205101",
    "posted_date": "2026-09-18",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-07",
+   "last_seen": "2026-10-08",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -661,7 +661,7 @@
    "url": "https://www.okta.com/company/careers/opportunity/8258400?gh_jid=8258400",
    "posted_date": "2026-10-06",
    "first_seen": "2026-10-06",
-   "last_seen": "2026-10-07",
+   "last_seen": "2026-10-08",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -710,7 +710,7 @@
    "url": "https://stripe.com/jobs/search?gh_jid=8042055",
    "posted_date": "2026-07-07",
    "first_seen": "2026-10-05",
-   "last_seen": "2026-10-07",
+   "last_seen": "2026-10-08",
    "status": "open",
    "flags": [
     "location_unverified"
@@ -759,7 +759,7 @@
    "url": "https://stripe.com/jobs/search?gh_jid=8114397",
    "posted_date": "2026-08-07",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-07",
+   "last_seen": "2026-10-08",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -848,7 +848,7 @@
    "url": "https://job-boards.greenhouse.io/tenstorrent/jobs/5249598007",
    "posted_date": "2026-09-29",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-07",
+   "last_seen": "2026-10-08",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -880,6 +880,54 @@
     "seniority": "Seniority band 'principal' vs candidate senior/lead/director level.",
     "location_auth": "Role in Toronto / Canada / Remote — strong location match.",
     "evidence": "3 requirement(s) backed by evidence library items: BELL-PAYMENTS-01, AMZN-CATALOG-01, IBM-CLM-01."
+   }
+  },
+  "greenhouse:twilio:8262150": {
+   "id": "greenhouse:twilio:8262150",
+   "identity": "twilio|sr program manager talent development",
+   "source": "board",
+   "source_key": "greenhouse:twilio",
+   "portal": "Greenhouse",
+   "company": "Twilio",
+   "title": "Sr. Program Manager, Talent Development",
+   "location": "Remote - US",
+   "country": null,
+   "work_model": "remote",
+   "url": "https://job-boards.greenhouse.io/twilio/jobs/8262150",
+   "posted_date": "2026-10-07",
+   "first_seen": "2026-10-08",
+   "last_seen": "2026-10-08",
+   "status": "open",
+   "flags": [
+    "location_unverified"
+   ],
+   "compensation": null,
+   "description": "Who we are \n\n At Twilio, we’re shaping the future of communications, all from the comfort of our homes. We deliver innovative solutions to hundreds of thousands of businesses and empower millions of developers worldwide to craft personalized customer experiences.\n\n Our dedication to remote-first work , and strong culture of connection and global inclusion means that no matter your location, you’re part of a vibrant team with diverse experiences making a global impact each day. As we continue to revolutionize how the world interacts, we’re acquiring new skills and experiences that make work feel truly rewarding. Your career at Twilio is in your hands.\n . \n\n Hiring and how we work \n\n We use Artificial Intelligence (AI) to help make our hiring process efficient. That said, every hiring decision is made by real Twilions! \n\n Also, while we are a remote-first company, you may be asked to report in person on an ad-hoc basis for team gatherings, functional off-sites or customer meetings. \n . \n See yourself at Twilio \n\n Join the team as Twilio’s next Sr. Program Manager, Talent Development\n\n About the job \n\n This position is needed to build and lead the live learning experiences that shape how Twilions grow, lead, and work together. You will design and facilitate Twilio's development programs, design and lead leadership team offsites, and serve as an internal coach to leaders and emerging talent around the globe.\n\n Reporting to the Senior Director of Talent Development, you will spend most of your time in the room, virtual or in person, with Twilions: designing programs, facilitating sessions, guiding leadership teams through high-stakes offsites, and coaching leaders through pivotal growth moments. The ideal candidate is an expert facilitator and credentialed coach who designs with rigor, reads a room in real time, and turns every session into measurable behavior change.\n\n Responsibilities \n\n In this role, you’ll:\n\n• Design and build facilitated development programs end to end, from needs assessment and learning objectives through facilitator guides, participant materials, and experiential activities, for leaders, managers, and individual contributors globally.\n\n• Facilitate Twilio's development programs in person, virtually, and in hybrid formats, delivering engaging, inclusive sessions that build skills and shift behavior across a global, remote-first workforce.\n\n• Design and facilitate leadership team offsites and team effectiveness sessions, partnering with senior leaders to define outcomes, build agendas, guide strategic conversations, and drive clear commitments and follow-through.\n\n• Serve as an internal coach to leaders and high-potential talent, delivering one-on-one and team coaching engagements and embedding coaching into development programs to reinforce learning.\n\n• Build internal facilitation capability by developing and certifying a bench of facilitators, and set the design and delivery standards for Talent Development programs.\n\n• Partner with HRBPs and business leaders to diagnose capability gaps and determine whether training, coaching, or a facilitated team intervention is the right solution.\n\n• Measure the impact of programs, offsites, and coaching through participant feedback, behavior change, and business outcomes, and use the data to continuously iterate.\n\n Qualifications \n\n Twilio values diverse experiences from all kinds of industries, and we encourage everyone who meets the required qualifications to apply. If your career is just starting or hasn't followed a traditional path, don't let that stop you from considering Twilio. We are always looking for people who will bring something new to the table!\n\n *Required: \n\n• Bachelor's degree required; advanced degree in Organizational Development, Industrial-Organizational Psychology, Adult Learning, Education, or a related field preferred.\n\n• 7-10 years in talent development, with 7+ years designing and facilitating leadership, manager, and professional development programs.\n\n• Demonstrated experience designing and facilitating executive and leadership team offsites, including strategic planning, team alignment, and team effectiveness sessions.\n\n• Expert facilitation skills across in-person, virtual, and hybrid formats, with the ability to engage diverse global audiences and navigate challenging group dynamics in real time.\n\n• Strong instructional design skills grounded in adult learning principles, including building facilitator guides and programs that scale through train-the-trainer models.\n\n• Executive presence with the ability to build trust quickly, deliver candid feedback, and maintain strict confidentiality with senior leaders.\n\n• Experience using learning and coaching data, including feedback, behavior change, and business metrics, to demonstrate impact and drive program decisions.\n\n• Willingness to travel for in-person programs and offsites (approx. 25%).\n\n Desired: \n\n• Certification in assessment tools such as Hogan, DiSC, MBTI, or 360-degree feedback instruments.\n\n• Experience building an internal coaching program or a facilitator certification pathway.\n\n• Experience applying AI tools to accelerate program design, personalize learning, or extend the reach of coaching.\n\n• Ability to effectively prioritize a full facilitation and coaching calendar in a fast-paced, ever-changing culture.\n\n Location \n\n This role will be remote, but is not eligible to be hired in CA, CT, NJ, NY, PA, WA. \n\n Travel \n\n We prioritize connection and opportunities to build relationships with our customers and each other. For this role, you will travel regularly to facilitate in-person programs and leadership offsites (approx. 25%).\n\n What We Offer \n\n Working at Twilio offers many benefits, including competitive pay, generous time off, ample parental and wellness leave, healthcare, a retirement savings program, and much more. Offerings vary by location.\n\n Compensation \n\n *Please note the salary range information provided applies only to candidates residing in California, Colorado, Hawaii, Illinois, Maryland, Massachusetts, Minnesota, New Jersey, New York, Vermont, Washington D.C., and Washington State due to local requirements. Compensation for candidates in other locations will be discussed during the hiring process. Please note that hiring for this role is not restricted to the locations listed above. \n\n . \n\n The estimated pay ranges for this role are as follows:\n\n• Based in Colorado, Hawaii, Illinois, Maryland, Massachusetts, Minnesota, Vermont or Washington D.C. : $128,560.00-$160,700.00..\n\n• Based in New York, New Jersey, Washington State, or California (outside of the San Francisco Bay area): $136,000.00-$170,000.00..\n\n• Based in the San Francisco Bay area, California: $151,120.00-$188,900.00.\n\n• This role may be eligible to participate in Twilio’s equity plan and corporate bonus plan. All roles are generally eligible for the following benefits: health care insurance, 401(k) retirement account, paid sick time, paid personal time off, paid parental leave.\n\n The successful candidate’s starting salary will be determined based on permissible, non-discriminatory factors such as skills, experience, and geographic location.\n\n Applications for this role are intended to be accepted until 10/14/26, but may change based on business needs. \n Twilio thinks big. Do you? \n\n We like to solve problems, take initiative, pitch in when needed, and are always up for trying new things. That's why we seek out colleagues who embody our values — something we call Twilio Magic . Additionally, we empower employees to build positive change in their communities by supporting their volunteering and donation efforts.\n\n So, if you're ready to unleash your full potential, do your best work, and be the best version of yourself, apply now! If this role isn't what you're looking for, please consider other open positions. \n\n . \n\n Stay alert to recruitment fraud \n\n We care about your safety. Scammers sometimes impersonate Twilio recruiters through fake job postings, emails, websites, or messages. Please ensure you are engaging with an official @ twilio.com email address. We will never ask for payment, gift cards, cryptocurrency, or banking information during the recruiting process. We do not make job offers without a formal interview process or conduct interviews exclusively through text-based messaging apps.\n\n . \n\n Twilio is proud to be an equal opportunity employer. We do not discriminate based upon race, religion, color, national origin, sex (including pregnancy, childbirth, reproductive health decisions, or related medical conditions), sexual orientation, gender identity, gender expression, age, status as a protected veteran, status as an individual with a disability, genetic information, political views or activity, or other applicable legally protected characteristics. We also consider qualified applicants with criminal histories, consistent with applicable federal, state and local law. Qualified applicants with arrest or conviction records will be considered for employment in accordance with the Los Angeles County Fair Chance Ordinance for Employers and the California Fair Chance Act. Additionally, Twilio participates in the E-Verify program in certain locations, as required by law.",
+   "role_family": "Technical Program Management",
+   "seniority": "senior",
+   "fit_score": 77.2,
+   "tier": "tier_2",
+   "ats_readiness": 75.2,
+   "barriers": [],
+   "authorization": "eligible",
+   "matched_keywords": [
+    "safe",
+    "program manager",
+    "AI",
+    "TCO",
+    "senior",
+    "lead"
+   ],
+   "missing_supported": [],
+   "missing_unsupported": [
+    "metrics",
+    "director"
+   ],
+   "fit_notes": {
+    "functional": "Role family 'Technical Program Management' aligns well with candidate target families.",
+    "seniority": "Seniority band 'senior' vs candidate senior/lead/director level.",
+    "location_auth": "Role in Toronto / Canada / Remote — strong location match.",
+    "evidence": "2 requirement(s) backed by evidence library items: BELL-TCO-01, BELL-PAYMENTS-01."
    }
   }
  },
@@ -1467,6 +1515,51 @@
     "Robinhood": 165,
     "Palantir": 314,
     "Spotify": 76
+   }
+  },
+  {
+   "started_at": "2026-10-08T17:37:04+00:00",
+   "fetched": 6559,
+   "passed_filter": 16,
+   "new": 1,
+   "updated": 14,
+   "closed": 0,
+   "new_tier1": 0,
+   "new_tier2": 1,
+   "source_errors": [
+    {
+     "source": "adzuna",
+     "company": "—",
+     "error": "not configured (set ADZUNA_APP_ID / ADZUNA_APP_KEY)"
+    }
+   ],
+   "sources": {
+    "Wealthsimple": 45,
+    "Cohere": 122,
+    "1Password": 68,
+    "KOHO": 9,
+    "Ramp": 162,
+    "Notion": 134,
+    "OpenAI": 816,
+    "Faire": 81,
+    "Instacart": 124,
+    "Okta": 366,
+    "Scale AI": 181,
+    "Coinbase": 223,
+    "Databricks": 894,
+    "Tenstorrent": 131,
+    "Anthropic": 645,
+    "Stripe": 729,
+    "Airbnb": 162,
+    "Dropbox": 32,
+    "Pinterest": 181,
+    "Lyft": 190,
+    "Cloudflare": 426,
+    "Twilio": 136,
+    "Figma": 150,
+    "Robinhood": 162,
+    "Palantir": 313,
+    "Spotify": 77
    }
   }
  ]
