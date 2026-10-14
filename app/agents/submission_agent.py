@@ -98,17 +98,41 @@ class CandidateSubmissionProfile:
 # ATS Detection
 # ─────────────────────────────────────────────────────────────────────────────
 
-def detect_ats(url: str) -> str:
-    """Return 'ashby' | 'greenhouse' | 'lever' | 'unknown' based on URL."""
-    url_lower = url.lower()
-    if "ashbyhq.com" in url_lower:
-        return "ashby"
-    if "greenhouse.io" in url_lower or "greenhouse" in url_lower:
+# ─────────────────────────────────────────────────────────────────────────────
+# ATS Detection
+# ─────────────────────────────────────────────────────────────────────────────
+
+def detect_ats(url: str, job_id: str = "") -> str:
+    """Return 'ashby' | 'greenhouse' | 'lever' | 'workday' | 'unknown' based on URL or job_id."""
+    url_lower = (url or "").lower()
+    jid_lower = (job_id or "").lower()
+
+    # 1. Job ID prefix hint (e.g. "greenhouse:instacart:8249753")
+    if jid_lower.startswith("greenhouse:") or jid_lower.startswith("gh:"):
         return "greenhouse"
-    if "lever.co" in url_lower:
+    if jid_lower.startswith("ashby:"):
+        return "ashby"
+    if jid_lower.startswith("lever:"):
         return "lever"
-    if "workday" in url_lower:
+    if jid_lower.startswith("workday:"):
         return "workday"
+
+    # 2. Greenhouse signatures: domain or embed params (gh_jid, gh_src, grnh.se)
+    if any(sig in url_lower for sig in ("greenhouse.io", "greenhouse", "grnh.se", "gh_jid", "gh_src")):
+        return "greenhouse"
+
+    # 3. Ashby signatures
+    if any(sig in url_lower for sig in ("ashbyhq.com", "ashby")):
+        return "ashby"
+
+    # 4. Lever signatures
+    if any(sig in url_lower for sig in ("lever.co", "jobs.lever.co")):
+        return "lever"
+
+    # 5. Workday signatures
+    if any(sig in url_lower for sig in ("myworkdayjobs.com", "workday")):
+        return "workday"
+
     return "unknown"
 
 
@@ -132,10 +156,23 @@ class _AshbyFiller:
         "submit":           'button[type="submit"], button:has-text("Submit")',
     }
 
+    def _get_target_scope(self, page):
+        """If the ATS application form is embedded inside an iframe, return that frame."""
+        for frame in page.frames:
+            furl = frame.url.lower()
+            if any(ats in furl for ats in ("ashbyhq", "greenhouse.io", "lever.co")):
+                return frame
+            try:
+                if frame.locator('input[type="file"], #first_name, input[name*="email" i]').count() > 0:
+                    return frame
+            except Exception:
+                pass
+        return page
+
     def fill(self, page, profile: CandidateSubmissionProfile,
              resume_path: Path, company: str, title: str, dry_run: bool = False) -> dict:
-        from playwright.sync_api import expect
         result = {"fields_filled": [], "fields_skipped": [], "screenshot": None}
+        scope = self._get_target_scope(page)
 
         name_parts = profile.name.split(" ", 1)
         first = name_parts[0]
@@ -144,7 +181,7 @@ class _AshbyFiller:
         # Fill fields safely
         def try_fill(label: str, selector: str, value: str):
             try:
-                el = page.locator(selector).first
+                el = scope.locator(selector).first
                 if el.is_visible(timeout=2000) and value:
                     el.fill(value)
                     result["fields_filled"].append(label)
@@ -160,14 +197,31 @@ class _AshbyFiller:
         try_fill("linkedin",   self.SELECTORS["linkedin"],   profile.linkedin_url)
         try_fill("location",   self.SELECTORS["location"],   profile.location)
 
+        # Fallback for LinkedIn: look for label containing LinkedIn if not filled yet
+        if "linkedin" not in result["fields_filled"] and profile.linkedin_url:
+            try:
+                for lbl in scope.locator("label").all():
+                    if "linkedin" in (lbl.text_content() or "").lower():
+                        for_id = lbl.get_attribute("for")
+                        if for_id:
+                            inp = scope.locator(f"#{for_id}").first
+                            if inp.is_visible(timeout=1000):
+                                inp.fill(profile.linkedin_url)
+                                result["fields_filled"].append("linkedin")
+                                if "linkedin" in result["fields_skipped"]:
+                                    result["fields_skipped"].remove("linkedin")
+                                break
+            except Exception:
+                pass
+
         cl = profile.cover_letter(company, title)
-        if cl:
+        if cl and self.SELECTORS.get("cover_letter"):
             try_fill("cover_letter", self.SELECTORS["cover_letter"], cl)
 
         # Upload resume
         try:
-            upload_el = page.locator(self.SELECTORS["resume_upload"]).first
-            if upload_el.is_visible(timeout=3000):
+            upload_el = scope.locator(self.SELECTORS["resume_upload"]).first
+            if upload_el.count() > 0:
                 upload_el.set_input_files(str(resume_path))
                 result["fields_filled"].append("resume_upload")
             else:
@@ -191,7 +245,7 @@ class _AshbyFiller:
 
         # Final submit — human must have already confirmed in UI
         try:
-            submit_el = page.locator(self.SELECTORS["submit"]).first
+            submit_el = scope.locator(self.SELECTORS["submit"]).first
             if submit_el.is_visible(timeout=3000):
                 submit_el.click()
                 page.wait_for_timeout(3000)
@@ -212,18 +266,18 @@ class _AshbyFiller:
 
 
 class _GreenhouseFiller(_AshbyFiller):
-    """Greenhouse overrides — same approach, different selectors."""
+    """Greenhouse overrides — handles both greenhouse.io native boards and custom domain embeds."""
     SELECTORS = {
-        "first_name":    '#first_name',
-        "last_name":     '#last_name',
-        "email":         '#email',
-        "phone":         '#phone',
-        "linkedin":      'input[id*="linkedin" i]',
+        "first_name":    '#first_name, input[name*="first_name" i]',
+        "last_name":     '#last_name, input[name*="last_name" i]',
+        "email":         '#email, input[name*="email" i]',
+        "phone":         '#phone, input[name*="phone" i], input[type="tel"]',
+        "linkedin":      'input[id*="linkedin" i], input[name*="linkedin" i]',
         "resume_upload": '#resume, input[type="file"]',
-        "location":      '#job_application_location',
+        "location":      '#job_application_location, #candidate-location, input[id*="location" i]',
         "work_auth":     'select[id*="authorization" i]',
-        "cover_letter":  '#cover_letter',
-        "submit":        '#submit_app, button[type="submit"]',
+        "cover_letter":  'textarea#cover_letter, textarea[id*="cover" i]',
+        "submit":        '#submit_app, button[type="submit"]:has-text("Submit"), button[type="submit"]',
     }
 
 
@@ -292,6 +346,7 @@ class SubmissionAgent:
         company: str,
         title: str,
         dry_run: bool = True,
+        job_id: str = "",
     ) -> dict:
         """
         Open the job URL, fill the form, upload the resume.
@@ -302,6 +357,7 @@ class SubmissionAgent:
             company:     Company name (for cover letter interpolation)
             title:       Job title
             dry_run:     If True, fill form but DO NOT click Submit
+            job_id:      Optional coordinator queue job ID (e.g. greenhouse:instacart:8249753)
 
         Returns:
             dict with keys: success, confirmation, screenshot, error, fields_filled, fields_skipped
@@ -313,7 +369,7 @@ class SubmissionAgent:
         if not resume_path.exists():
             return {"success": False, "error": f"Resume file not found: {resume_path}"}
 
-        ats = detect_ats(url)
+        ats = detect_ats(url, job_id=job_id)
         filler_map = {
             "ashby":      _AshbyFiller(),
             "greenhouse": _GreenhouseFiller(),
@@ -374,6 +430,6 @@ class SubmissionAgent:
             log.error("Submission failed: %s", exc, exc_info=True)
             return {"success": False, "error": str(exc)}
 
-    def prefill_preview(self, url: str, resume_path: Path, company: str, title: str) -> dict:
+    def prefill_preview(self, url: str, resume_path: Path, company: str, title: str, job_id: str = "") -> dict:
         """Dry-run: fill the form and take a screenshot but never submit."""
-        return self.submit(url, resume_path, company, title, dry_run=True)
+        return self.submit(url, resume_path, company, title, dry_run=True, job_id=job_id)

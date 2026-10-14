@@ -3357,11 +3357,14 @@ elif screen == "🎯 Coordinator":
         for entry in sub_ready:
             with st.container(border=True):
                 st.markdown(f"**{entry.company} — {entry.title}**")
-                ats_detected = detect_ats(entry.url) if entry.url else "unknown"
+                ats_detected = detect_ats(entry.url, job_id=entry.id) if entry.url else "unknown"
                 st.caption(
                     f"ATS: **{ats_detected.title()}**  ·  "
                     f"Resume: `{Path(entry.tailored_resume_path).name if entry.tailored_resume_path else '—'}`"
                 )
+                if entry.status == JobStatus.submission_failed and entry.submission_error:
+                    st.warning(f"⚠️ **Previous submission attempt failed:** {entry.submission_error}")
+
                 if entry.url:
                     st.markdown(
                         f'<a href="{entry.url}" target="_blank" style="font-size:0.85rem">🔗 Review Job Posting First</a>',
@@ -3381,6 +3384,7 @@ elif screen == "🎯 Coordinator":
                                 resume_path=Path(entry.tailored_resume_path),
                                 company=entry.company,
                                 title=entry.title,
+                                job_id=entry.id,
                             )
                         if result.get("screenshot"):
                             st.image(result["screenshot"], caption="Form pre-filled (not submitted)")
@@ -3396,9 +3400,10 @@ elif screen == "🎯 Coordinator":
                     )
 
                 with g3c3:
+                    btn_label = "🔄 RETRY SUBMISSION" if entry.status == JobStatus.submission_failed else "🚀 SUBMIT APPLICATION"
                     if playwright_ok and confirmed:
                         if st.button(
-                            "🚀 SUBMIT APPLICATION",
+                            btn_label,
                             key=f"submit_{entry.id}",
                             type="primary",
                             use_container_width=True,

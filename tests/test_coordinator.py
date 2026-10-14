@@ -102,3 +102,52 @@ def test_job_queue_find_entry(tmp_path: Path):
 
     # Not found
     assert queue.find_entry(company="Google", title="Engineer") is None
+
+
+def test_detect_ats():
+    from app.agents.submission_agent import detect_ats
+
+    # Greenhouse URLs & embedded query params
+    assert detect_ats("https://instacart.careers/job/?gh_jid=8249753") == "greenhouse"
+    assert detect_ats("https://boards.greenhouse.io/instacart/jobs/8249753") == "greenhouse"
+    assert detect_ats("https://grnh.se/abcde123") == "greenhouse"
+    assert detect_ats("https://somecompany.com/apply?gh_src=custom") == "greenhouse"
+    assert detect_ats("", job_id="greenhouse:instacart:8249753") == "greenhouse"
+
+    # Ashby URLs & job_id
+    assert detect_ats("https://jobs.ashbyhq.com/cohere/123") == "ashby"
+    assert detect_ats("", job_id="ashby:cohere:123") == "ashby"
+
+    # Lever URLs & job_id
+    assert detect_ats("https://jobs.lever.co/netflix/123") == "lever"
+    assert detect_ats("", job_id="lever:netflix:123") == "lever"
+
+    # Workday URLs
+    assert detect_ats("https://company.myworkdayjobs.com/careers/job/123") == "workday"
+    assert detect_ats("", job_id="workday:company:123") == "workday"
+
+    # Unknown
+    assert detect_ats("https://customcompany.com/careers") == "unknown"
+
+
+def test_approved_for_submission_includes_failed(tmp_path: Path):
+    from app.coordinator.coordinator import CoordinatorAgent
+    queue_file = tmp_path / "queue.json"
+    queue = JobQueue(path=queue_file)
+
+    approved_entry = QueueEntry({"id": "j1", "company": "Co1", "status": JobStatus.submission_approved.value})
+    failed_entry = QueueEntry({"id": "j2", "company": "Co2", "status": JobStatus.submission_failed.value})
+    discovered_entry = QueueEntry({"id": "j3", "company": "Co3", "status": JobStatus.discovered.value})
+
+    queue.add(approved_entry)
+    queue.add(failed_entry)
+    queue.add(discovered_entry)
+
+    coord = CoordinatorAgent(queue=queue)
+    ready = coord.approved_for_submission()
+    ready_ids = {e.id for e in ready}
+
+    assert "j1" in ready_ids
+    assert "j2" in ready_ids
+    assert "j3" not in ready_ids
+

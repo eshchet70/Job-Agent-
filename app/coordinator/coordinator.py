@@ -253,7 +253,7 @@ class CoordinatorAgent:
         Returns result dict with keys: success, confirmation, error
         """
         entry = self.queue.get(job_id)
-        if not entry or entry.status != JobStatus.submission_approved:
+        if not entry or entry.status not in (JobStatus.submission_approved, JobStatus.submission_failed):
             return {"success": False, "error": "Job not in submission_approved state"}
 
         resume_path = entry.tailored_resume_path
@@ -272,6 +272,7 @@ class CoordinatorAgent:
             company=entry.company,
             title=entry.title,
             dry_run=dry_run,
+            job_id=entry.id,
         )
 
         if result["success"]:
@@ -296,8 +297,8 @@ class CoordinatorAgent:
         return self.queue.by_status(JobStatus.resume_ready, JobStatus.rejected_resume)
 
     def approved_for_submission(self) -> list[QueueEntry]:
-        """Jobs cleared for Gate 3 (submission_approved)."""
-        return self.queue.by_status(JobStatus.submission_approved)
+        """Jobs cleared for Gate 3 (submission_approved or submission_failed)."""
+        return self.queue.by_status(JobStatus.submission_approved, JobStatus.submission_failed)
 
     def in_progress(self) -> list[QueueEntry]:
         """Jobs being actively worked."""
