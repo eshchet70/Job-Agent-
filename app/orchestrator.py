@@ -1,43 +1,54 @@
 """Backward-compatible entry points for job-analysis application services."""
 from __future__ import annotations
 
-from typing import Optional
-
 from app.application import create_job_analysis_service
 from app.models import ApplicationBrief, JobRecord, ParsedJD
 from app.services.evidence_loader import load_evidence_library
 from app.services.resume_store import load_master_resume, save_master_resume
+
+__all__ = [
+    "analyze_job",
+    "attach_people_and_outreach",
+    "load_evidence",
+    "load_master_resume",
+    "process_job",
+    "save_master_resume",
+    "tailor_resume_for_job",
+]
 
 
 def analyze_job(
     company: str,
     title: str,
     description: str,
-    location: Optional[str] = None,
-    country: Optional[str] = None,
-    work_model: Optional[str] = None,
-    official_url: Optional[str] = None,
+    location: str | None = None,
+    country: str | None = None,
+    work_model: str | None = None,
+    official_url: str | None = None,
     source_type: str = "manual",
-    people_list: Optional[list[dict]] = None,
+    people_list: list[dict] | None = None,
     save_to_db: bool = True,
     write_to_excel: bool = False,
 ) -> ApplicationBrief:
     """Compatibility wrapper; set ``save_to_db=False`` for side-effect-free analysis."""
     service = create_job_analysis_service()
-    kwargs = dict(
-        company=company,
-        title=title,
-        description=description,
-        location=location,
-        country=country,
-        work_model=work_model,
-        official_url=official_url,
-        source_type=source_type,
-        people_list=people_list,
-    )
+    kwargs = {
+        "company": company,
+        "title": title,
+        "description": description,
+        "location": location,
+        "country": country,
+        "work_model": work_model,
+        "official_url": official_url,
+        "source_type": source_type,
+        "people_list": people_list,
+    }
     if save_to_db:
         return service.execute(**kwargs, write_to_excel=write_to_excel)
-    return service.analyze(**kwargs)
+    brief = service.analyze(**kwargs)
+    if write_to_excel:
+        service.sync_tracker(brief)
+    return brief
 
 
 def process_job(

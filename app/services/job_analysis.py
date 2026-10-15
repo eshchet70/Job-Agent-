@@ -1,8 +1,8 @@
 """Application service for qualifying a job and optionally saving its results."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Optional, Protocol
+from datetime import UTC, datetime
+from typing import Protocol
 
 from app.models import (
     ApplicationBrief,
@@ -25,9 +25,9 @@ from app.services.resume_store import load_master_resume
 
 
 class JobRepository(Protocol):
-    def find_duplicate_job(self, company: str, title: str) -> Optional[int]: ...
-    def get_brief_for_job(self, job_id: int) -> Optional[ApplicationBrief]: ...
-    def get_job(self, job_id: int) -> Optional[JobRecord]: ...
+    def find_duplicate_job(self, company: str, title: str) -> int | None: ...
+    def get_brief_for_job(self, job_id: int) -> ApplicationBrief | None: ...
+    def get_job(self, job_id: int) -> JobRecord | None: ...
     def save_brief(self, brief: ApplicationBrief) -> int: ...
     def save_person(self, job_id: int, person: PersonTarget) -> int: ...
     def save_outreach(self, record: OutreachRecord) -> int: ...
@@ -46,8 +46,8 @@ class JobAnalysisService:
 
     def __init__(
         self,
-        repository: Optional[JobRepository] = None,
-        tracker: Optional[TrackerWriter] = None,
+        repository: JobRepository | None = None,
+        tracker: TrackerWriter | None = None,
         resume_loader=_default_resume_loader,
         evidence_loader=load_evidence_library,
     ) -> None:
@@ -61,12 +61,12 @@ class JobAnalysisService:
         company: str,
         title: str,
         description: str,
-        location: Optional[str] = None,
-        country: Optional[str] = None,
-        work_model: Optional[str] = None,
-        official_url: Optional[str] = None,
+        location: str | None = None,
+        country: str | None = None,
+        work_model: str | None = None,
+        official_url: str | None = None,
         source_type: str = "manual",
-        people_list: Optional[list[dict]] = None,
+        people_list: list[dict] | None = None,
     ) -> ApplicationBrief:
         """Build an analysis brief without database or tracker side effects."""
         job = JobRecord(
@@ -79,7 +79,7 @@ class JobAnalysisService:
             official_url=official_url,
             source_type=source_type,
             status=OpenStatus.unknown,
-            verified_at=datetime.now(timezone.utc),
+            verified_at=datetime.now(UTC),
         )
         parsed_jd = jd_parser.parse_jd(description, company=company)
         job.role_family = parsed_jd.role_family
@@ -116,7 +116,7 @@ class JobAnalysisService:
             outreach=outreach,
             positioning=self._build_positioning(fit, gate, ats),
             next_action=self._determine_next_action(fit, gate),
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
 
     def execute(
@@ -124,12 +124,12 @@ class JobAnalysisService:
         company: str,
         title: str,
         description: str,
-        location: Optional[str] = None,
-        country: Optional[str] = None,
-        work_model: Optional[str] = None,
-        official_url: Optional[str] = None,
+        location: str | None = None,
+        country: str | None = None,
+        work_model: str | None = None,
+        official_url: str | None = None,
         source_type: str = "manual",
-        people_list: Optional[list[dict]] = None,
+        people_list: list[dict] | None = None,
         write_to_excel: bool = False,
     ) -> ApplicationBrief:
         """Analyze, persist, and optionally sync a job through injected adapters."""
@@ -162,12 +162,18 @@ class JobAnalysisService:
         job_id = self.repository.save_brief(brief)
         brief.job = brief.job.model_copy(update={"id": job_id})
 
-        if write_to_excel and self.tracker is not None:
-            try:
-                self.tracker.write_brief_to_tracker(brief)
-            except FileNotFoundError:
-                pass
+        if write_to_excel:
+            self.sync_tracker(brief)
         return brief
+
+    def sync_tracker(self, brief: ApplicationBrief) -> None:
+        """Write a completed brief through the optional tracker adapter."""
+        if self.tracker is None:
+            raise RuntimeError("A tracker adapter is required to sync the Excel tracker.")
+        try:
+            self.tracker.write_brief_to_tracker(brief)
+        except FileNotFoundError:
+            pass
 
     def process_job(
         self,

@@ -1,5 +1,6 @@
-from app.services.job_analysis import JobAnalysisService
+import importlib
 
+from app.services.job_analysis import JobAnalysisService
 
 JOB_DESCRIPTION = (
     "Senior Technical Program Manager. Lead cross-functional programs, portfolio "
@@ -42,7 +43,7 @@ class FakeTracker:
 def test_analyze_returns_brief_without_persistence_or_tracker_writes():
     service = JobAnalysisService(
         resume_loader=lambda: "Technical program management and Agile delivery",
-        evidence_loader=lambda: [],
+        evidence_loader=list,
     )
 
     brief = service.analyze(
@@ -63,7 +64,7 @@ def test_execute_uses_injected_repository_and_tracker():
         repository=repository,
         tracker=tracker,
         resume_loader=lambda: "Technical program management and Agile delivery",
-        evidence_loader=lambda: [],
+        evidence_loader=list,
     )
 
     brief = service.execute(
@@ -76,3 +77,14 @@ def test_execute_uses_injected_repository_and_tracker():
     assert brief.job.id == 42
     assert repository.saved == [brief]
     assert tracker.written == [brief]
+
+
+def test_importing_orchestrator_does_not_initialize_database(monkeypatch):
+    import app.orchestrator
+    from app.db import database
+
+    initialized = []
+    monkeypatch.setattr(database, "init_db", lambda: initialized.append(True))
+    importlib.reload(app.orchestrator)
+
+    assert initialized == []
