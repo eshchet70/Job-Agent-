@@ -30,6 +30,7 @@ from pathlib import Path
 import pandas as pd
 
 from app.config import settings
+from app.application import create_job_analysis_service
 import app.db.database as db_module
 import app.db.repository as repo
 from app.db.database import init_db
@@ -43,9 +44,10 @@ import app.orchestrator as orch
 from app.services import resume_tailor
 from app.services import tracker_service
 
-process_job = orch.process_job
+job_analysis_service = create_job_analysis_service()
+process_job = job_analysis_service.process_job
 load_evidence = orch.load_evidence
-attach_people_and_outreach = orch.attach_people_and_outreach
+attach_people_and_outreach = job_analysis_service.attach_people_and_outreach
 
 MASTER_RESUME_FILE = Path(__file__).resolve().parent.parent.parent / "data" / "master_resume.txt"
 
