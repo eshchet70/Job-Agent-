@@ -6,3 +6,4 @@
 4. Evidence Library is canonical for candidate claims.
 5. Authenticated services are optional adapters and cannot become a dependency for core analysis.
 6. External communication remains human-approved in MVP 1.
+7. Job qualification is an application service with injected persistence and tracker adapters; importing the analysis entry points does not initialize the database.
