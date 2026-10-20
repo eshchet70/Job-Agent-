@@ -14,7 +14,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/01a34bc3-6421-4af2-bf5b-f42e98155dda",
    "posted_date": "2026-09-03",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-19",
+   "last_seen": "2026-10-20",
    "status": "open",
    "flags": [],
    "compensation": "CA$200K – CA$245K • Offers Equity",
@@ -68,7 +68,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/41cb2a12-e33a-4368-a9f8-0ae0d19c023e",
    "posted_date": "2026-09-03",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-19",
+   "last_seen": "2026-10-20",
    "status": "open",
    "flags": [],
    "compensation": "$140K – $220K • Offers Equity • Multiple Ranges",
@@ -113,7 +113,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/582c4a60-14a2-49d5-b4d3-24c4ec50508d",
    "posted_date": "2026-10-03",
    "first_seen": "2026-10-03",
-   "last_seen": "2026-10-19",
+   "last_seen": "2026-10-20",
    "status": "open",
    "flags": [
     "location_unverified"
@@ -163,7 +163,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/81450c5f-8495-439b-a1b3-ce7ef9739437",
    "posted_date": "2026-10-13",
    "first_seen": "2026-10-13",
-   "last_seen": "2026-10-19",
+   "last_seen": "2026-10-20",
    "status": "open",
    "flags": [],
    "compensation": "CA$335K – CA$410K • Offers Equity",
@@ -193,6 +193,60 @@
     "evidence": "2 requirement(s) backed by evidence library items: BELL-PAYMENTS-01, AMZN-CATALOG-01."
    }
   },
+  "ashby:cohere:b04cf265-c4f7-48bf-88ec-d4d71f3bdfaa": {
+   "id": "ashby:cohere:b04cf265-c4f7-48bf-88ec-d4d71f3bdfaa",
+   "identity": "cohere|technical program manager ai delivery for public sector defense germany",
+   "source": "board",
+   "source_key": "ashby:cohere",
+   "portal": "Ashby",
+   "company": "Cohere",
+   "title": "Technical Program Manager, AI Delivery for Public Sector & Defense, Germany",
+   "location": "Germany",
+   "country": null,
+   "work_model": "remote",
+   "url": "https://jobs.ashbyhq.com/cohere/b04cf265-c4f7-48bf-88ec-d4d71f3bdfaa",
+   "posted_date": "2026-10-20",
+   "first_seen": "2026-10-20",
+   "last_seen": "2026-10-20",
+   "status": "open",
+   "flags": [
+    "location_unverified"
+   ],
+   "compensation": null,
+   "description": "WHO ARE WE?\n\nCohere is the leading security-first enterprise AI company.  We build cutting-edge foundation AI models and end-to-end products that are designed to solve real-world business problems.\n\nWe’re training and deploying frontier models for enterprises who are building AI systems. We believe that our work is instrumental to the widespread adoption of AI and we are looking for folks that want to be part of that.\n\nWe obsess over what we build. Each one of us is responsible for contributing to increasing the capabilities of our models and the value they drive for our customers. Cohere is a team of researchers, engineers, designers, and more, who are all passionate about their craft.\n\nWe are a global technology company headquartered in Toronto with key offices in London, New York City, San Francisco, Montreal, Paris, Berlin and Seoul. Join us!\n\nWhy This Role?\n\nWe're seeking an experienced Program Manager to join Cohere's customer-facing Program Management team, with a focus on public sector and defence accounts in Europe, particularly in Germany. This is a highly specialised role requiring an individual who understands technical program delivery, the technical complexity of frontier AI models and the unique requirements of government and defence organisations.\n\nYou will be the critical bridge between our cutting-edge AI capabilities and the specific needs of Ministries, Agencies, and defence organisations across Europe. You'll navigate complex procurement processes, stringent security requirements, data sovereignty concerns, and regulatory compliance while ensuring our customers successfully deploy and scale our AI solutions.\n\nIn this role, you'll collaborate with our Strategic Customer team, Applied ML (AML) Engineering, Forward Deployed Engineering (FDE), Platform, Product, and Go-to-Market teams, serving as the technical program lead and trusted advisor for our most sensitive and high-impact government and defence engagements.\n\nLocation: Germany\n\nEligibility: This individual must be a German citizen living in Germany and fluent in German, enabling immediate engagement with critical defense and national security customers.\n\nSecurity Clearance: German security clearance is not required, but is a strong nice-to-have. \n\nWhat You'll Do\n\nCustomer Program Leadership:\n\n - Own end-to-end technical program delivery for Germany and broader European public sector and defence customers, from initial deployment through production scaling\n\n - Serve as the primary technical program point of contact for customers, building trusted relationships with departmental CIOs, IT directors, and technical teams\n\n - Translate complex public sector and defence requirements (security, compliance, accessibility, bilingualism, data sovereignty) into actionable engineering plans\n\n - Navigate complex procurement processes, RFP responses, and contractual technical obligations.\n\nStrategic Communication:\n\n - Provide clear, timely, and objective communication across Cohere's engineering organisation, customer stakeholders, pubic sector and defence leadership\n\n - Translate between AI/ML technical concepts and government-appropriate language for decision-makers who may not have deep technical backgrounds\n\n - Present technical roadmaps and status updates to senior stakeholders including departmental executives\n\n - Represent Cohere's technical capabilities in sensitive government and defence contexts.\n\nComplex Program Management:\n\n - Create and manage project schedules that account for public sector and defence timelines, security review processes, and approval cycles\n\n - Identify and manage dependencies across government departments, security authorities, cloud service providers, and internal Cohere teams\n\n - Navigate risks unique to government and defence deployments: privacy compliance, security, political and regulatory, technology and infrastructure.\n\n - Drive alignment between product development priorities and specific customer requirements.\n\nTechnical Delivery & Execution:\n\n - Ensure on-time delivery of AI solutions that meet security, privacy, accessibility, and performance standards\n\n - Coordinate technical work across multiple teams: model customisation, security hardening, integration with government systems, bilingual support\n\n - Establish governance checkpoints appropriate for high-stakes government and defence deployments\n\n - Problem-solve complex technical challenges in air-gapped, on-premises, or highly regulated environments.\n\nYou May Be a Good Fit If:\n\nRequired Experience:\n\n - 6+ years of experience as a customer-facing Technical or Engineering Program Manager in AI/ML consulting, technology transformation, or enterprise software delivery.\n\n - Excellent executive communication and stakeholder management.\n\n - Experience working with government, defence, or heavily regulated customers.\n\n - Proven track record managing complex, multi-stakeholder technical programs with stringent compliance requirements.\n\n - Bachelor’s degree in a relevant field; advanced degree or technical certs a plus.\n\nTechnical Background:\n\n - Strong understanding of enterprise software deployment architectures (cloud, on-premises, hybrid, air-gapped)\n\n - Working knowledge of or experience with modern AI: LLMs, agentic systems, MCP, RAG, fine-tuning, evals, and responsible AI would be a strong differentiator\n\n - Comfortable discussing API integrations, model inference, data pipelines, and ML operations with technical stakeholders.\n\nGovernment & Defence Acumen:\n\n - Deep understanding of how government and defence organisations procure, evaluate, and deploy technology\n\n - Familiarity with European government requirements: data sovereignty, privacy laws (Privacy Act), accessibility standards, official languages obligations, security classifications\n\n - Understanding of defence and national security considerations in AI deployment\n\n - Experience with Algorithmic Impact Assessments or AI ethics frameworks is a strong asset\n\n - Eligible to obtain a German security clearance\n\nNice to Have:\n\n - Active German security clearance \n\n - Bilingual (English/German) proficiency\n\n - Background in or strong familiarity with European defence, intelligence, or critical infrastructure sectors\n\n - Experience with GC Cloud services (Azure, AWS GovCloud) or Protected B/C environments\n\n - Project management certification (PMP, PgMP) or government-specific methodologies.\n\nSecurity Clearance Requirements\n\nThis role strongly prefers eligibility for German government security clearance.\n\nWe are looking for candidates eligible for German government clearance, meaning that they require German citizenship. In addition, this individual is required to be based in Germany and be fluent in German as this will enable immediate engagement with critical defence and national security customers.\n\nWhat Makes This Role Unique\n\nThis isn't typical program management - it's a highly specialised role at the intersection of frontier AI, national security, and public sector digital transformation. You'll work on some of Canada's most sensitive and impactful AI deployments, helping government organisations harness cutting-edge technology while maintaining the highest standards of security, ethics, and accountability.\n\nIf you're passionate about responsible AI adoption, understand the unique constraints and opportunities within government, and want to have an outsized impact on how Canada leverages AI to serve its citizens, this role is for you.\n\n\n\n\nFULL-TIME EMPLOYEES AT COHERE ENJOY THESE PERKS:\n\n - A weekly lunch stipend of $75/£75 or equivalent in your local currency for lunch.\n\n - Full health and dental benefits, including a separate budget for mental health.\n\n - RRSP matching, 401K, Pension Scheme.\n\n - 100% Parental Leave top-up for up to 6 months, for either parent.\n\n - Annual enrichment benefits:\n   \n   Arts & culture, fitness/wellness, quality time, and a workspace improvement credit.\n   \n   Education & learning stipend for conferences, courses, and coaching.\n\n - 6 weeks of paid vacation (30 working days!)\n\n - Budget for traveling to other offices if you are remote, plus an annual company offsite.\n\n\n\n\nHOW AND WHERE WE WORK:\n\n - Cohere is remote-friendly, but we also have offices in Toronto, London, New York City, San Francisco, Montreal, Paris, Berlin and Seoul with more opening soon.\n\n - For those in the office: a daily lunch program, plenty of snacks, and regular community and social events.\n\n - For those not near an office: a co-working benefit so you can work alongside others in your city.\n\n - Everyone receives a $500 home office stipend to set up your workspace properly.\n   \n   \n\nIf any of the above doesn’t line up exactly with your experience, we still encourage you to apply. \n\n\nWe strive to create an inclusive work environment for all; we welcome applicants from all backgrounds and are committed to providing equal opportunities. Should you require any accommodations during the recruitment process, please submit an Accommodations Request Form https://docs.google.com/forms/d/12a6IrLdF3kI2nonKSr4tiFuz18rLQbaeYV-JM9L4o9Q/edit, and we will work together to meet your needs.\n\n\n\nWe may use AI-enabled tools to screen and assess applicants against the criteria for this position. This helps our recruiters identify potentially qualified candidates, but it doesn't limit the applications our recruiters may review or consider.\n\n\n\nBeware of Scams: Cohere will never ask for payment or third-party services (e.g., CV writing) as part of our hiring process. All legitimate roles are listed on the Cohere careers page and LinkedIn only, with all communications from Cohere employees coming from an @cohere.com or @cw.cohere email alias. If jobs are viewed on other sites then please verify these through our official careers https://cohere.com/careers page.",
+   "role_family": "Technical Program Management",
+   "seniority": "senior",
+   "fit_score": 79.4,
+   "tier": "tier_2",
+   "ats_readiness": 70.3,
+   "barriers": [],
+   "authorization": "eligible",
+   "matched_keywords": [
+    "roadmap",
+    "stakeholder management",
+    "program manager",
+    "technical program manager",
+    "AI",
+    "transformation",
+    "senior",
+    "lead",
+    "public sector"
+   ],
+   "missing_supported": [
+    "cloud",
+    "procurement"
+   ],
+   "missing_unsupported": [
+    "budget",
+    "director"
+   ],
+   "fit_notes": {
+    "functional": "Role family 'Technical Program Management' aligns well with candidate target families.",
+    "seniority": "Seniority band 'senior' vs candidate senior/lead/director level.",
+    "location_auth": "Location unclear or neutral — moderate score pending verification.",
+    "evidence": "6 requirement(s) backed by evidence library items: BELL-TCO-01, BELL-PORTFOLIO-01, BELL-PAYMENTS-01."
+   }
+  },
   "ashby:cohere:cd987666-aeda-4da6-a23c-d84d4231d33b": {
    "id": "ashby:cohere:cd987666-aeda-4da6-a23c-d84d4231d33b",
    "identity": "cohere|technical program manager ai delivery korea",
@@ -207,7 +261,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/cd987666-aeda-4da6-a23c-d84d4231d33b",
    "posted_date": "2026-07-20",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-19",
+   "last_seen": "2026-10-20",
    "status": "open",
    "flags": [
     "location_unverified"
@@ -304,7 +358,7 @@
    "url": "https://jobs.ashbyhq.com/openai/6b8eed3a-d549-4df8-9ac7-134d4d52c600",
    "posted_date": "2026-08-17",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-19",
+   "last_seen": "2026-10-20",
    "status": "open",
    "flags": [],
    "compensation": "CA$297K – CA$330K • Offers Equity",
@@ -449,7 +503,7 @@
    "url": "https://boards.greenhouse.io/figma/jobs/6020719004?gh_jid=6020719004",
    "posted_date": "2026-06-12",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-19",
+   "last_seen": "2026-10-20",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -498,7 +552,7 @@
    "url": "https://instacart.careers/job/?gh_jid=8112136",
    "posted_date": "2026-08-06",
    "first_seen": "2026-10-12",
-   "last_seen": "2026-10-19",
+   "last_seen": "2026-10-20",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -543,7 +597,7 @@
    "url": "https://instacart.careers/job/?gh_jid=8249751",
    "posted_date": "2026-10-02",
    "first_seen": "2026-10-16",
-   "last_seen": "2026-10-19",
+   "last_seen": "2026-10-20",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -597,7 +651,7 @@
    "url": "https://instacart.careers/job/?gh_jid=8249753",
    "posted_date": "2026-10-02",
    "first_seen": "2026-10-02",
-   "last_seen": "2026-10-19",
+   "last_seen": "2026-10-20",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -650,7 +704,7 @@
    "url": "https://www.okta.com/company/careers/opportunity/8157043?gh_jid=8157043",
    "posted_date": "2026-08-25",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-19",
+   "last_seen": "2026-10-20",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -697,7 +751,7 @@
    "url": "https://www.okta.com/company/careers/opportunity/8194325?gh_jid=8194325",
    "posted_date": "2026-09-11",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-19",
+   "last_seen": "2026-10-20",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -745,7 +799,7 @@
    "url": "https://www.okta.com/company/careers/opportunity/8205101?gh_jid=8205101",
    "posted_date": "2026-09-18",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-19",
+   "last_seen": "2026-10-20",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -803,8 +857,8 @@
    "url": "https://www.okta.com/company/careers/opportunity/8258400?gh_jid=8258400",
    "posted_date": "2026-10-06",
    "first_seen": "2026-10-06",
-   "last_seen": "2026-10-12",
-   "status": "closed",
+   "last_seen": "2026-10-20",
+   "status": "open",
    "flags": [],
    "compensation": null,
    "role_family": "Technical Program Management",
@@ -835,8 +889,7 @@
     "seniority": "Seniority band 'principal' vs candidate senior/lead/director level.",
     "location_auth": "Role in Toronto / Canada / Remote — strong location match.",
     "evidence": "4 requirement(s) backed by evidence library items: BELL-TCO-01, BELL-PORTFOLIO-01, BELL-PAYMENTS-01."
-   },
-   "closed_on": "2026-10-13"
+   }
   },
   "greenhouse:stripe:8042055": {
    "id": "greenhouse:stripe:8042055",
@@ -852,7 +905,7 @@
    "url": "https://stripe.com/jobs/search?gh_jid=8042055",
    "posted_date": "2026-07-07",
    "first_seen": "2026-10-05",
-   "last_seen": "2026-10-19",
+   "last_seen": "2026-10-20",
    "status": "open",
    "flags": [
     "location_unverified"
@@ -901,8 +954,8 @@
    "url": "https://stripe.com/jobs/search?gh_jid=8114397",
    "posted_date": "2026-08-07",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-14",
-   "status": "closed",
+   "last_seen": "2026-10-20",
+   "status": "open",
    "flags": [],
    "compensation": null,
    "role_family": "Technical Program Management",
@@ -929,8 +982,7 @@
     "seniority": "Seniority band 'lead/director' vs candidate senior/lead/director level.",
     "location_auth": "Role in Toronto / Canada / Remote — strong location match.",
     "evidence": "4 requirement(s) backed by evidence library items: BELL-TCO-01, BELL-PORTFOLIO-01, BELL-PAYMENTS-01."
-   },
-   "closed_on": "2026-10-15"
+   }
   },
   "greenhouse:stripe:8282859": {
    "id": "greenhouse:stripe:8282859",
@@ -946,7 +998,7 @@
    "url": "https://stripe.com/jobs/search?gh_jid=8282859",
    "posted_date": "2026-10-15",
    "first_seen": "2026-10-15",
-   "last_seen": "2026-10-19",
+   "last_seen": "2026-10-20",
    "status": "open",
    "flags": [
     "location_unverified"
@@ -1036,7 +1088,7 @@
    "url": "https://job-boards.greenhouse.io/tenstorrent/jobs/5249598007",
    "posted_date": "2026-09-29",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-19",
+   "last_seen": "2026-10-20",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -1084,7 +1136,7 @@
    "url": "https://job-boards.greenhouse.io/tenstorrent/jobs/5265014007",
    "posted_date": "2026-10-13",
    "first_seen": "2026-10-14",
-   "last_seen": "2026-10-19",
+   "last_seen": "2026-10-20",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -2289,6 +2341,51 @@
     "Figma": 140,
     "Robinhood": 152,
     "Palantir": 306,
+    "Spotify": 82
+   }
+  },
+  {
+   "started_at": "2026-10-20T15:24:16+00:00",
+   "fetched": 6567,
+   "passed_filter": 21,
+   "new": 1,
+   "updated": 19,
+   "closed": 0,
+   "new_tier1": 0,
+   "new_tier2": 1,
+   "source_errors": [
+    {
+     "source": "adzuna",
+     "company": "—",
+     "error": "not configured (set ADZUNA_APP_ID / ADZUNA_APP_KEY)"
+    }
+   ],
+   "sources": {
+    "Wealthsimple": 43,
+    "Cohere": 116,
+    "1Password": 76,
+    "KOHO": 6,
+    "Ramp": 168,
+    "Notion": 135,
+    "OpenAI": 806,
+    "Faire": 78,
+    "Instacart": 123,
+    "Okta": 393,
+    "Scale AI": 184,
+    "Coinbase": 225,
+    "Databricks": 899,
+    "Tenstorrent": 127,
+    "Anthropic": 670,
+    "Stripe": 729,
+    "Airbnb": 180,
+    "Dropbox": 19,
+    "Pinterest": 155,
+    "Lyft": 181,
+    "Cloudflare": 437,
+    "Twilio": 132,
+    "Figma": 142,
+    "Robinhood": 152,
+    "Palantir": 309,
     "Spotify": 82
    }
   }
