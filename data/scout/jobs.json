@@ -14,7 +14,7 @@
    "url": "https://jobs.ashbyhq.com/1password/86c4d000-e4f2-439f-be85-5018767e5cc1",
    "posted_date": "2026-10-21",
    "first_seen": "2026-10-22",
-   "last_seen": "2026-10-22",
+   "last_seen": "2026-10-23",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -64,7 +64,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/01a34bc3-6421-4af2-bf5b-f42e98155dda",
    "posted_date": "2026-09-03",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-22",
+   "last_seen": "2026-10-23",
    "status": "open",
    "flags": [],
    "compensation": "CA$200K – CA$245K • Offers Equity",
@@ -118,7 +118,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/41cb2a12-e33a-4368-a9f8-0ae0d19c023e",
    "posted_date": "2026-09-03",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-22",
+   "last_seen": "2026-10-23",
    "status": "open",
    "flags": [],
    "compensation": "$140K – $220K • Offers Equity • Multiple Ranges",
@@ -163,7 +163,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/582c4a60-14a2-49d5-b4d3-24c4ec50508d",
    "posted_date": "2026-10-03",
    "first_seen": "2026-10-03",
-   "last_seen": "2026-10-22",
+   "last_seen": "2026-10-23",
    "status": "open",
    "flags": [
     "location_unverified"
@@ -213,7 +213,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/81450c5f-8495-439b-a1b3-ce7ef9739437",
    "posted_date": "2026-10-13",
    "first_seen": "2026-10-13",
-   "last_seen": "2026-10-22",
+   "last_seen": "2026-10-23",
    "status": "open",
    "flags": [],
    "compensation": "CA$335K – CA$410K • Offers Equity",
@@ -257,7 +257,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/b04cf265-c4f7-48bf-88ec-d4d71f3bdfaa",
    "posted_date": "2026-10-20",
    "first_seen": "2026-10-20",
-   "last_seen": "2026-10-22",
+   "last_seen": "2026-10-23",
    "status": "open",
    "flags": [
     "location_unverified"
@@ -311,7 +311,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/cd987666-aeda-4da6-a23c-d84d4231d33b",
    "posted_date": "2026-07-20",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-22",
+   "last_seen": "2026-10-23",
    "status": "open",
    "flags": [
     "location_unverified"
@@ -408,7 +408,7 @@
    "url": "https://jobs.ashbyhq.com/openai/6b8eed3a-d549-4df8-9ac7-134d4d52c600",
    "posted_date": "2026-08-17",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-22",
+   "last_seen": "2026-10-23",
    "status": "open",
    "flags": [],
    "compensation": "CA$297K – CA$330K • Offers Equity",
@@ -506,7 +506,7 @@
    "url": "https://jobs.dropbox.com/listing/8234201?gh_jid=8234201",
    "posted_date": "2026-10-01",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-22",
+   "last_seen": "2026-10-23",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -552,7 +552,7 @@
    "url": "https://boards.greenhouse.io/figma/jobs/6020719004?gh_jid=6020719004",
    "posted_date": "2026-06-12",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-22",
+   "last_seen": "2026-10-23",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -601,7 +601,7 @@
    "url": "https://instacart.careers/job/?gh_jid=8112136",
    "posted_date": "2026-08-06",
    "first_seen": "2026-10-12",
-   "last_seen": "2026-10-22",
+   "last_seen": "2026-10-23",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -646,7 +646,7 @@
    "url": "https://instacart.careers/job/?gh_jid=8249751",
    "posted_date": "2026-10-02",
    "first_seen": "2026-10-16",
-   "last_seen": "2026-10-22",
+   "last_seen": "2026-10-23",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -700,7 +700,7 @@
    "url": "https://instacart.careers/job/?gh_jid=8249753",
    "posted_date": "2026-10-02",
    "first_seen": "2026-10-02",
-   "last_seen": "2026-10-22",
+   "last_seen": "2026-10-23",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -753,7 +753,7 @@
    "url": "https://www.okta.com/company/careers/opportunity/8157043?gh_jid=8157043",
    "posted_date": "2026-08-25",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-22",
+   "last_seen": "2026-10-23",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -849,10 +849,9 @@
    "posted_date": "2026-09-18",
    "first_seen": "2026-10-01",
    "last_seen": "2026-10-22",
-   "status": "open",
+   "status": "closed",
    "flags": [],
    "compensation": null,
-   "description": "Secure Every Identity, from AI to Human\n\n Identity is the key to unlocking the potential of AI. Okta secures AI by building the trusted, neutral infrastructure that enables organizations to safely embrace this new era. This work requires a relentless drive to solve complex challenges with real-world stakes. We are looking for builders and owners who operate with speed and urgency and execute with excellence.\n\nThis is an opportunity to do career-defining work. We're all in on this mission. If you are too, let's talk.\n Role Overview \n\n As the Okta Research & Design (ORD) Jira Owner & Administrator , nested within the Technical Program Management (TPM) organization, you will define and execute the strategy for how ORD plans, tracks, and reports on engineering work within the full toolchain of Atlassian Jira, Jira Advanced Roadmaps (Plans), Confluence, Rovo, and AI integrations. In this role, you act as a critical bridge between product & technical leadership, agile teams, and cross-functional business units — translating methodology, best practices, and process frameworks into practical workflow improvements that accelerate delivery and reduce manual overhead for a 1,000+ person engineering, product, and design organization.\n\n By optimizing tooling configurations, automating reporting, and eliminating fragmented management processes, you will directly accelerate ORD’s developer velocity and strengthen operational efficiency.\n\n Core Responsibilities \n\n 1. Platform Ownership & Strategic Tooling Direction \n\n• Strategic Vision: Define, implement, govern an AI-led strategy for utilizing Jira for product planning, tracking, and reporting tooling that supports end-to-end portfolio tracking from high-level corporate objectives down to sprint-level stories.\n\n• E2E Ecosystem Management: Complete ORD ownership of the toolchain (Jira, Jira advanced Roadmaps, AI integrations, Confluence), overseeing architecture, schema updates, workflow management, screen/notification schemes, custom fields, permission sets, and AI integrations.\n\n• Scale and Automation: Design a highly automated, self-service model that easily scales to accommodate organizational growth in user volume and environmental complexity.\n\n• AI Tool Integration: Lead evaluation, piloting, and rollout of AI-powered tooling (e.g., Atlassian Rovo, Claude for Jira, AI Companion) to automate ticket triage, sprint planning suggestions, and status summarization.\n\n 2. Engineering Process Optimization & Standardization \n\n• PDLC Alignment: Partner closely with Product Management, Engineering, Quality Assurance, and Security to align tool mechanics with the company's release cadences, secure SDLC requirements, and change control policies.\n\n• Workflow Design: Standardize Jira workflows to track key engineering pillars uniformly (e.g., New Feature Development, Architecture Improvements, and Run-the-Business/KTLO operations).\n\n• Eliminate Tool Fragmentation: Actively lead efforts to migrate teams away from disjointed standalone tracking sheets and custom scripts into Jira to create a single, synchronized source of truth.\n\n 3. Data Governance & Analytics Enablement \n\n• Source of Truth Data: Ensure data integrity within Jira to allow executive leadership to accurately assess resource allocation, identify horizontal dependencies, map organizational priorities, and make informed business investment decisions.\n\n• Metrics Reporting: Oversee configurations for integrated reporting engines (such as Faros.ai) to surface real-time visibility into engineering productivity metrics, cycle time, lead time, pipeline health, and bottleneck identification.\n\n• Change Control & Risk Management: Serve as a core member of the Jira Change Control Board (CCB), assessing the risk levels (Low, Medium, High) of configuration requests to protect the functionality of critical engineering dashboards and tracking filters.\n\n 4. Direct Support & Enablement Packages \n\n• User Enablement: Create intuitive, scalable enablement packages, documentation, and training guides to ensure seamless platform onboarding for new and existing Oktanauts.\n\n• Ongoing Administration: Act as an independent administrator managing day-to-day configuration requests, custom JQL filtering, role/privilege assignments, and automation rules.\n\n• Cross-Functional Partnership: Collaborate deeply with internal customers—Developers, Scrum Masters, Engineering Managers, Design Leads, and Product Leads—to capture gaps and build creative process improvements.\n\n Qualifications & Profile \n\n Minimum Qualifications \n\n• Education: Bachelor’s degree in Computer Science, Information Technology, Business Technology, or a related field; or equivalent practical experience.\n\n• Atlassian Expertise: Proven, hands-on experience in Advanced Jira and Confluence Administration within an enterprise-scale engineering ecosystem (supporting 500+ users).\n\n• Technical Languages: Essential proficiency with Jira Query Language (JQL), basic SQL, or equivalent database queries.\n\n• AI Proficiency: Hands-on experience integrating AI tools (e.g., Claude, Gemini, Atlassian Rovo, GitHub Copilot) into product development workflows, with a demonstrated ability to evaluate, pilot, and scale AI capabilities across engineering teams.\n\n• Agile Methodology: Thorough understanding of agile/lean development, Scrum frameworks, sprint execution ceremonies, and SAFe/Portfolio-level planning models.\n\n• PDLC & SDLC Knowledge: Deep conceptual awareness of modern software engineering practices, release management trains, CI/CD pipelines, and infrastructure deployment models.\n\n Preferred Qualifications \n\n• Advanced Tools: Deep experience leveraging Jira Service Management, Jira Advanced Roadmaps (Plans), and metrics platforms like Faros.ai.\n\n• Scripting & Automation: Strong willingness or ability to extend native Atlassian functionality through scripting, macros, and API automations.\n\n• Analytical Rigor: Excellent critical thinking and advanced troubleshooting capabilities using application logs and configuration event logs.\n\n• Communication: Stellar written and verbal communication skills; a proven track record of synthesizing dense technical conditions into clear executAI Workflow Design: Experience designing AI-augmented workflows — such as automated ticket enrichment, AI-driven sprint retrospectives, or LLM-assisted reporting — that reduce manual TPM overhead.\n\n #LI-MM\n#LI-Hybrid\nP22182_3551164\n Below is the annual salary range for candidates located in Canada. Your actual salary will depend on factors such as your skills, qualifications, and experience. In addition, Okta offers equity (where applicable), bonus, and benefits, including health, dental, and vision insurance, RRSP with a match, healthcare spending, telemedicine, and paid leave (including PTO and parental leave) in accordance with our applicable plans and policies. To learn more about our Total Rewards program, please visit: https://rewards.okta.com/can .\n The annual base salary range for this position for candidates located in Canada is between: $108,000 — $149,000 CAD The Okta Experience \n\n• Supporting Your Well-Being \n\n• Driving Social Impact \n\n• Developing Talent and Fostering Connection + Community \n\n We are intentional about connection. Our global community, spanning over 20 offices worldwide, is united by a drive to innovate. Your journey begins with an immersive, in-person onboarding experience designed to accelerate your impact and connect you to our mission and team from day one.\n\nOkta is an Equal Opportunity Employer. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, ancestry, marital status, age, physical or mental disability, or status as a protected veteran. We also consider for employment qualified applicants with arrest and convictions records, consistent with applicable laws.\n\nIf reasonable accommodation is needed to complete any part of the job application, interview process, or onboarding please use this Form to request an accommodation.\n\nNotice for New York City Applicants & Employees: Okta may use Automated Employment Decision Tools (AEDT), as defined by New York City Local Law 144, that use artificial intelligence, machine learning, or other automated processes to assist in our recruitment and hiring process. In accordance with NYC Local Law 144, if you are an applicant or employee residing in New York City, please click here to view our full NYC AEDT Notice.",
    "role_family": "Technical Program Management",
    "seniority": "senior",
    "fit_score": 86.0,
@@ -890,7 +889,8 @@
     "seniority": "Seniority band 'senior' vs candidate senior/lead/director level.",
     "location_auth": "Role in Toronto / Canada / Remote — strong location match.",
     "evidence": "6 requirement(s) backed by evidence library items: BELL-PORTFOLIO-01, BELL-PAYMENTS-01, AMZN-CATALOG-01."
-   }
+   },
+   "closed_on": "2026-10-23"
   },
   "greenhouse:okta:8258400": {
    "id": "greenhouse:okta:8258400",
@@ -907,7 +907,7 @@
    "posted_date": "2026-10-06",
    "first_seen": "2026-10-06",
    "last_seen": "2026-10-22",
-   "status": "open",
+   "status": "closed",
    "flags": [],
    "compensation": null,
    "role_family": "Technical Program Management",
@@ -938,7 +938,8 @@
     "seniority": "Seniority band 'principal' vs candidate senior/lead/director level.",
     "location_auth": "Role in Toronto / Canada / Remote — strong location match.",
     "evidence": "4 requirement(s) backed by evidence library items: BELL-TCO-01, BELL-PORTFOLIO-01, BELL-PAYMENTS-01."
-   }
+   },
+   "closed_on": "2026-10-23"
   },
   "greenhouse:robinhood:8301728": {
    "id": "greenhouse:robinhood:8301728",
@@ -954,7 +955,7 @@
    "url": "https://boards.greenhouse.io/robinhood/jobs/8301728?t=gh_src=&gh_jid=8301728",
    "posted_date": "2026-10-20",
    "first_seen": "2026-10-21",
-   "last_seen": "2026-10-22",
+   "last_seen": "2026-10-23",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -1002,7 +1003,7 @@
    "url": "https://stripe.com/jobs/search?gh_jid=8042055",
    "posted_date": "2026-07-07",
    "first_seen": "2026-10-05",
-   "last_seen": "2026-10-22",
+   "last_seen": "2026-10-23",
    "status": "open",
    "flags": [
     "location_unverified"
@@ -1051,7 +1052,7 @@
    "url": "https://stripe.com/jobs/search?gh_jid=8114397",
    "posted_date": "2026-08-07",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-22",
+   "last_seen": "2026-10-23",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -1095,8 +1096,8 @@
    "url": "https://stripe.com/jobs/search?gh_jid=8282859",
    "posted_date": "2026-10-15",
    "first_seen": "2026-10-15",
-   "last_seen": "2026-10-21",
-   "status": "closed",
+   "last_seen": "2026-10-23",
+   "status": "open",
    "flags": [
     "location_unverified"
    ],
@@ -1124,8 +1125,7 @@
     "seniority": "Seniority band 'lead/director' vs candidate senior/lead/director level.",
     "location_auth": "Role in Toronto / Canada / Remote — strong location match.",
     "evidence": "4 requirement(s) backed by evidence library items: BELL-TCO-01, BELL-PORTFOLIO-01, BELL-PAYMENTS-01."
-   },
-   "closed_on": "2026-10-22"
+   }
   },
   "greenhouse:tenstorrent:5185558007": {
    "id": "greenhouse:tenstorrent:5185558007",
@@ -1185,7 +1185,7 @@
    "url": "https://job-boards.greenhouse.io/tenstorrent/jobs/5249598007",
    "posted_date": "2026-09-29",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-10-22",
+   "last_seen": "2026-10-23",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -1233,7 +1233,7 @@
    "url": "https://job-boards.greenhouse.io/tenstorrent/jobs/5265014007",
    "posted_date": "2026-10-13",
    "first_seen": "2026-10-14",
-   "last_seen": "2026-10-22",
+   "last_seen": "2026-10-23",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -1280,7 +1280,7 @@
    "url": "https://job-boards.greenhouse.io/tenstorrent/jobs/5270577007",
    "posted_date": "2026-10-21",
    "first_seen": "2026-10-22",
-   "last_seen": "2026-10-22",
+   "last_seen": "2026-10-23",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -2621,6 +2621,51 @@
     "Figma": 140,
     "Robinhood": 155,
     "Spotify": 82
+   }
+  },
+  {
+   "started_at": "2026-10-23T15:29:57+00:00",
+   "fetched": 6582,
+   "passed_filter": 23,
+   "new": 0,
+   "updated": 21,
+   "closed": 2,
+   "new_tier1": 0,
+   "new_tier2": 0,
+   "source_errors": [
+    {
+     "source": "adzuna",
+     "company": "—",
+     "error": "not configured (set ADZUNA_APP_ID / ADZUNA_APP_KEY)"
+    }
+   ],
+   "sources": {
+    "Wealthsimple": 43,
+    "Cohere": 113,
+    "1Password": 90,
+    "KOHO": 9,
+    "Ramp": 171,
+    "Notion": 140,
+    "OpenAI": 798,
+    "Faire": 70,
+    "Instacart": 115,
+    "Okta": 386,
+    "Scale AI": 172,
+    "Coinbase": 224,
+    "Databricks": 896,
+    "Tenstorrent": 119,
+    "Anthropic": 683,
+    "Stripe": 722,
+    "Airbnb": 195,
+    "Dropbox": 24,
+    "Pinterest": 161,
+    "Lyft": 181,
+    "Cloudflare": 448,
+    "Twilio": 132,
+    "Figma": 141,
+    "Robinhood": 157,
+    "Palantir": 309,
+    "Spotify": 83
    }
   }
  ]
