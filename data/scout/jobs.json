@@ -14,7 +14,7 @@
    "url": "https://jobs.ashbyhq.com/1password/86c4d000-e4f2-439f-be85-5018767e5cc1",
    "posted_date": "2026-10-21",
    "first_seen": "2026-10-22",
-   "last_seen": "2026-11-17",
+   "last_seen": "2026-11-18",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -64,7 +64,7 @@
    "url": "https://jobs.ashbyhq.com/1password/89f1ecd1-0bcd-4cbf-aaf9-337e0c0568e1",
    "posted_date": "2026-10-27",
    "first_seen": "2026-10-28",
-   "last_seen": "2026-11-17",
+   "last_seen": "2026-11-18",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -115,7 +115,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/01a34bc3-6421-4af2-bf5b-f42e98155dda",
    "posted_date": "2026-09-03",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-11-17",
+   "last_seen": "2026-11-18",
    "status": "open",
    "flags": [],
    "compensation": "CA$200K – CA$245K • Offers Equity",
@@ -169,7 +169,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/41cb2a12-e33a-4368-a9f8-0ae0d19c023e",
    "posted_date": "2026-09-03",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-11-17",
+   "last_seen": "2026-11-18",
    "status": "open",
    "flags": [],
    "compensation": "$140K – $220K • Offers Equity • Multiple Ranges",
@@ -214,7 +214,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/582c4a60-14a2-49d5-b4d3-24c4ec50508d",
    "posted_date": "2026-10-03",
    "first_seen": "2026-10-03",
-   "last_seen": "2026-11-17",
+   "last_seen": "2026-11-18",
    "status": "open",
    "flags": [
     "location_unverified"
@@ -264,7 +264,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/81450c5f-8495-439b-a1b3-ce7ef9739437",
    "posted_date": "2026-10-13",
    "first_seen": "2026-10-13",
-   "last_seen": "2026-11-17",
+   "last_seen": "2026-11-18",
    "status": "open",
    "flags": [],
    "compensation": "CA$335K – CA$410K • Offers Equity",
@@ -308,7 +308,7 @@
    "url": "https://jobs.ashbyhq.com/cohere/b04cf265-c4f7-48bf-88ec-d4d71f3bdfaa",
    "posted_date": "2026-10-20",
    "first_seen": "2026-10-20",
-   "last_seen": "2026-11-17",
+   "last_seen": "2026-11-18",
    "status": "open",
    "flags": [
     "location_unverified"
@@ -409,7 +409,7 @@
    "url": "https://jobs.ashbyhq.com/openai/2c531790-726c-4d39-b3bd-900c59a09a4d",
    "posted_date": "2026-11-05",
    "first_seen": "2026-11-06",
-   "last_seen": "2026-11-17",
+   "last_seen": "2026-11-18",
    "status": "open",
    "flags": [
     "location_unverified"
@@ -506,7 +506,7 @@
    "url": "https://jobs.ashbyhq.com/openai/6b8eed3a-d549-4df8-9ac7-134d4d52c600",
    "posted_date": "2026-08-17",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-11-17",
+   "last_seen": "2026-11-18",
    "status": "open",
    "flags": [],
    "compensation": "CA$297K – CA$330K • Offers Equity",
@@ -641,7 +641,7 @@
    "url": "https://boards.greenhouse.io/figma/jobs/6020719004?gh_jid=6020719004",
    "posted_date": "2026-06-12",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-11-17",
+   "last_seen": "2026-11-18",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -674,6 +674,52 @@
     "seniority": "Seniority band 'senior' vs candidate senior/lead/director level.",
     "location_auth": "Location unclear or neutral — moderate score pending verification.",
     "evidence": "4 requirement(s) backed by evidence library items: BELL-TCO-01, BELL-PORTFOLIO-01, BELL-PAYMENTS-01."
+   }
+  },
+  "greenhouse:figma:6261622004": {
+   "id": "greenhouse:figma:6261622004",
+   "identity": "figma|technical program manager ai",
+   "source": "board",
+   "source_key": "greenhouse:figma",
+   "portal": "Greenhouse",
+   "company": "Figma",
+   "title": "Technical Program Manager, AI",
+   "location": "New York, NY • United States",
+   "country": "Canada",
+   "work_model": null,
+   "url": "https://boards.greenhouse.io/figma/jobs/6261622004?gh_jid=6261622004",
+   "posted_date": "2026-11-17",
+   "first_seen": "2026-11-18",
+   "last_seen": "2026-11-18",
+   "status": "open",
+   "flags": [],
+   "compensation": null,
+   "description": "Figma is growing our team of passionate creatives and builders on a mission to make design accessible to all. Figma’s platform helps teams bring ideas to life—whether you're brainstorming, creating a prototype, translating designs into code, or iterating with AI. From idea to product, Figma empowers teams to streamline workflows, move faster, and work together in real time from anywhere in the world. If you're excited to shape the future of design and collaboration, join us!\n We’re building the next chapter of AI-native craft and creativity - where craft and technology meet. Our unified platform bridges the gap between AI capabilities and human creativity, and lets professional creatives and designers harness the power of the world’s leading AI models without losing precision, expression, or soul. Together, we’re building tools that help people move faster without sacrificing quality, precision, or craft - a platform where AI supports creativity instead of flattening it.\n\n We’re looking for a scrappy, hands-on AI Product Technical Program Manager to join Figma Weave as the team’s first TPM. You’ll partner with Engineering, Product, and Design to turn ambiguous customer needs and new AI capabilities into reliable creative workflows. You’ll lead programs across the AI model lifecycle, usage economics, and products like the Weave API. You’ll get close to the architecture, help teams make informed technical tradeoffs, and stay accountable through launch and adoption. You’ll also build AI workflows and automation yourself to help the team move faster.\n\n This full-time role can be based in our New York hub or remotely on the East Coast of the United States. You’ll join a team spread across the United States, Europe, and Tel Aviv, with occasional travel to work alongside Figma Weave partners in Tel Aviv.\n\n What you’ll do at Figma Weave: \n\n• Lead model lifecycle management across image, video, editing, enhancement, audio/lip-sync, 3D, and vector models, using the existing evaluation process to drive new model integration, launch, updates, and deprecation\n\n• Make tradeoffs around quality, reliability, latency, cost, and capacity clear to the decision owners\n\n• Track model limitations, integration issues, and provider dependencies through fixes, rollout, and follow-up\n\n• Work with Engineering, Partnerships, and Finance on provider agreements, quotas, rate limits, and capacity commitments so Weave can support product growth and launch demand. Bring in Product, Legal, and Security to resolve dependencies\n\n• Manage AI costs, capacity, and unit economics across 10+ providers and 50+ models. Forecast usage and spend, plan provider capacity for launches, and work with engineers on fallback options\n\n• Build things that make work less work. Improve process design and build AI workflows and automation that help the team move faster. Use APIs, scripts, or data queries to improve program visibility, streamline processes, and remove recurring bottlenecks\n\n• Lead horizontal product programs that span Weave teams, such as the Weave API. Understand how API contracts, authentication, permissions, asynchronous execution, and usage limits affect delivery. Coordinate dependencies across Weave and Figma, work through technical blockers, and follow the program through testing, release, and adoption\n\n• Lead cross-functional technical readiness for Config and other major launches. Work with engineering leads on end-to-end workflow testing, provider capacity, monitoring, and rollback plans. Bring together Support, Legal, Marketing, and other launch partners, make risks and go/no-go decisions clear, and follow through on customer issues and incident action items after release\n\n We’d love to hear from you if you have: \n\n• Scrappiness and adaptability: You get into the details and take practical steps to move work forward. You can investigate a problem, partner with your engineering counterparts on a solution, or build a quick prototype without waiting for a perfect plan. You adjust when priorities change and follow through on what you start\n\n• Third-party AI model integration: You’ve led programs that bring third-party AI models into a product and keep them working. You can use evaluation findings and usage data to drive decisions across Engineering, Product, and Partnerships, including tradeoffs around quality, reliability, latency, cost, capacity, and unit economics\n\n• AI-enabled process design and automation: Hands-on experience building lightweight processes by leveraging AI workflows, automation, or internal tools\n\n• Technical judgment and hands-on problem solving: You can follow a workflow from the user interface through backend services and external model APIs. You reason about latency, throughput, rate limits, retries, and failure modes with engineers. You’ve managed AI cost structures, including usage and spend, pricing negotiations, and capacity planning\n\n• AI product program delivery and ownership: You’ve led customer-facing technical programs with cross-functional partners, from an ambiguous need through launch and adoption. You judge success by whether the product works for customers and delivers the intended result\n\n While it’s not required, it’s an added plus if you also have: \n\n• You’ve been an early TPM or worked at a startup, where you helped engineering teams plan and ship without adding more process than they needed\n\n• You’ve worked with a broad set of model providers, including early-access programs or model migrations\n\n• AI research or applied AI program experience is preferred. You’ve partnered with researchers and engineers and used their findings to bring new capabilities into a product. Experience with generative image or video products, and how creative users judge output quality, is especially useful\n\n At Figma, one of our values is Grow as you go. We believe in hiring smart, curious people who are excited to learn and develop their skills. If you’re excited about this role but your past experience doesn’t align perfectly with the points outlined in the job description, we encourage you to apply anyways. You may be just the right candidate for this or other roles.\n Pay Transparency Disclosure \n\n Job level and actual compensation will be decided based on factors including, but not limited to, individual qualifications objectively assessed during the interview process (including skills and prior relevant experience, potential impact, and scope of role), market demands, and specific work location. \n\n Figma offers equity to employees, as well as a competitive package of additional benefits, including health, dental, and vision coverage; retirement benefits with company contributions; parental leave and reproductive or family planning support; mental health and wellness benefits; and paid time off. Figma provides paid sick leave, holidays, and other leave benefits in compliance with applicable federal, state, and local laws, including the requirements of the Washington Minimum Wage Act and related regulations. Exempt employees are eligible for employer‑provided paid flexible PTO in addition to flexible paid sick leave. PTO is subject to manager approval. Additional benefits may include company recharge days, cell phone and home internet reimbursements, and a number of lifestyle spending accounts. Figma also offers sales incentive compensation for most sales roles and an annual bonus plan for eligible non-sales roles. All compensation and benefits are subject to applicable plan terms and may be modified by Figma at any time, consistent with applicable law.\n Annual Base Salary Range: $185,000 — $269,000 USD At Figma we celebrate and support our differences. We know employing a team rich in diverse thoughts, experiences, and opinions allows our employees, our product and our community to flourish. Figma is an equal opportunity workplace - we are dedicated to equal employment opportunities regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity/expression, veteran status , or any other characteristic protected by law. We also consider qualified applicants regardless of criminal histories, consistent with legal requirements.\n\n We will work to ensure individuals with disabilities are provided reasonable accommodation to apply for a role, participate in the interview process, perform essential job functions, and receive other benefits and privileges of employment. If you require accommodation, please reach out to accommodations-ext@figma.com . These modifications enable an individual with a disability to have an equal opportunity not only to get a job, but successfully perform their job tasks to the same extent as people without disabilities. \n\n Examples of accommodations include but are not limited to: \n\n• Holding interviews in an accessible location\n\n• Enabling closed captioning on video conferencing\n\n• Ensuring all written communication be compatible with screen readers\n\n• Changing the mode or format of interviews \n\n To ensure the integrity of our hiring process and facilitate a more personal connection, we require all candidates keep their cameras on during video interviews. Additionally, if hired you will be required to attend in person onboarding.\n\n By applying for this job, the candidate acknowledges and agrees that any personal data contained in their application or supporting materials will be processed in accordance with Figma's Candidate Privacy Notice .\n\n Application limits: To help candidates focus on the opportunities most relevant to their skills and experience, Figma limits the number and frequency of applications. These limits apply to all roles:\n\n• Candidates may submit up to 5 applications during any rolling 30-day period.\n\n• Candidates may not reapply to the same role while an application is active or within 90 days of receiving a rejection.\n\n Once the applicable days has passed, candidates are welcome to apply again.",
+   "role_family": "Technical Program Management",
+   "seniority": "lead/director",
+   "fit_score": 71.8,
+   "tier": "tier_2",
+   "ats_readiness": 60.1,
+   "barriers": [],
+   "authorization": "eligible",
+   "matched_keywords": [
+    "cross-functional",
+    "program manager",
+    "technical program manager",
+    "AI",
+    "lead",
+    "automation"
+   ],
+   "missing_supported": [],
+   "missing_unsupported": [
+    "capacity planning",
+    "TPM"
+   ],
+   "fit_notes": {
+    "functional": "Role family 'Technical Program Management' aligns well with candidate target families.",
+    "seniority": "Seniority band 'lead/director' vs candidate senior/lead/director level.",
+    "location_auth": "Location unclear or neutral — moderate score pending verification.",
+    "evidence": "2 requirement(s) backed by evidence library items: BELL-PAYMENTS-01, AMZN-CATALOG-01, IBM-CLM-01."
    }
   },
   "greenhouse:instacart:8112136": {
@@ -843,7 +889,7 @@
    "url": "https://app.careerpuck.com/job-board/lyft/job/8938484002?gh_jid=8938484002",
    "posted_date": "2026-11-12",
    "first_seen": "2026-11-13",
-   "last_seen": "2026-11-17",
+   "last_seen": "2026-11-18",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -1093,7 +1139,7 @@
    "url": "https://boards.greenhouse.io/robinhood/jobs/8301728?t=gh_src=&gh_jid=8301728",
    "posted_date": "2026-10-20",
    "first_seen": "2026-10-21",
-   "last_seen": "2026-11-17",
+   "last_seen": "2026-11-18",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -1127,6 +1173,56 @@
     "evidence": "4 requirement(s) backed by evidence library items: BELL-TCO-01, BELL-PAYMENTS-01, AMZN-CATALOG-01."
    }
   },
+  "greenhouse:stripe:7742552": {
+   "id": "greenhouse:stripe:7742552",
+   "identity": "stripe|enterprise risk management program lead malpb",
+   "source": "board",
+   "source_key": "greenhouse:stripe",
+   "portal": "Greenhouse",
+   "company": "Stripe",
+   "title": "Enterprise Risk Management (ERM) Program Lead, MALPB",
+   "location": "US-Remote",
+   "country": null,
+   "work_model": "remote",
+   "url": "https://stripe.com/jobs/search?gh_jid=7742552",
+   "posted_date": "2026-03-27",
+   "first_seen": "2026-11-18",
+   "last_seen": "2026-11-18",
+   "status": "open",
+   "flags": [
+    "location_unverified"
+   ],
+   "compensation": null,
+   "description": "Who we are \n\n About Stripe \n\n Stripe is a financial infrastructure platform for businesses. Millions of companies - from the world’s largest enterprises to the most ambitious startups - use Stripe to accept payments, grow their revenue, and accelerate new business opportunities. Our mission is to increase the GDP of the internet, and we have a staggering amount of work ahead. That means you have an unprecedented opportunity to put the global economy within everyone's reach while doing the most important work of your career. \n\n About the team \n\n Stripe MALPB operates in a complex, fast-moving regulatory environment. The Risk and Compliance team is responsible for ensuring that our expansion is grounded in a bulletproof governance framework that matches the speed of our technology.\nHaving successfully established our foundational ERM policies, taxonomy, and risk registers, we are entering the integration phase. This team is building the future of \"AI-Native\" risk management—where governance frameworks are embedded into daily business operations through automated data pipelines and LLM orchestration.\n\n What you’ll do \n\n We are seeking a risk professional who combines strong enterprise risk management (ERM) experience with an analytical mindset and an interest in technology. Grounded in risk, audit, or compliance, you’ll help strengthen risk management across Stripe MALPB by bringing independent judgment, cross-functional collaboration, and clear communication to complex business challenges. ERM expertise is the primary focus, complemented by SQL skills and curiosity about how AI and automation can improve risk and control processes.\n We are looking for a rare breed of professional: someone with the executive presence to stand up a banking governance program, combined with the hands-on engineering capabilities to automate it themselves. \nAs Enterprise Risk Management Lead, you will lead MALPB’s ERM program end-to-end, translating its established framework into consistent practices across the bank. You will provide independent second-line oversight and challenge, deliver clear reporting to management and the Board, and improve how the bank identifies, assesses, monitors, and responds to risk. \n\n Responsibilities \n\n• Lead risk assessments. Run the annual Risk and Control Self-Assessment (RCSA) cycle, providing independent second-line challenge of first-line risk assessments, risk ratings, and control effectiveness.\n\n• Maintain core risk infrastructure. Maintain the Master Control Library, Central Risk Register, and enterprise risk taxonomy, with effective version control and change management to reflect evolving operations and emerging risks.\n\n• Monitor risk appetite and remediation. Aggregate, analyze, and validate Key Risk Indicators (KRIs) against Board-approved risk appetite thresholds. Escalate breaches, require appropriate Management Action Plans (MAPs), and track remediation.\n\n• Deliver decision-ready reporting. Combine quantitative risk metrics with qualitative assessments of emerging risks to produce the quarterly Enterprise Risk Scorecard and present clear, actionable insights to the Management Risk Committee and Board of Directors.\n\n• Apply data-driven analysis. Use basic SQL queries and existing reporting tools to extract and sample data for control verification, partnering with technical teams on more complex analysis, automation, and system integrations.\n\n• Use AI to improve execution. Explore and apply AI tools to support control monitoring and testing, partnering with technical teams to develop agents that flag potential anomalies or control deficiencies for expert review.\n\n• Advance continuous monitoring. Progressively supplement point-in-time testing with automated dashboards and ongoing monitoring of key operational and regulatory controls. \n\n Who you are \n\n We're looking for someone who meets the minimum requirements to be considered for the role. If you meet these requirements, you are encouraged to apply. The preferred qualifications are a bonus, not a requirement. \n\n Minimum requirements \n\n• 8+ years of experience in enterprise risk management, operational risk, or risk advisory within a regulated financial institution, fintech company, or Big Four technology-risk practice.\n\n• Demonstrated experience implementing and embedding ERM programs—including RCSAs, KRIs, risk registers, and control libraries—within active, fast-paced business operations.\n\n• Strong analytical skills, including the ability to interpret large datasets, assess data quality, and translate findings into meaningful risk insights.\n\n• Working knowledge of SQL, including the ability to write basic queries for data extraction and analysis.\n\n• Exceptional written and verbal communication skills, including experience constructively challenging senior business leaders and preparing concise, Board-level risk reporting.\n\n• Familiarity with AI tools and a willingness to learn how to build and apply AI agents to risk management processes. \n\n Preferred qualifications \n\n• Experience in a regulated fintech company, digital bank, or complex global payments processor.\n\n• Familiarity with governance, risk, and compliance (GRC) platforms, such as ServiceNow or Archer, including how their configuration can support a scalable ERM program.",
+   "role_family": "Technical Program Management",
+   "seniority": "senior",
+   "fit_score": 81.7,
+   "tier": "tier_1",
+   "ats_readiness": 47.6,
+   "barriers": [],
+   "authorization": "eligible",
+   "matched_keywords": [
+    "cross-functional",
+    "AI",
+    "servicenow",
+    "senior",
+    "lead",
+    "data quality",
+    "automation"
+   ],
+   "missing_supported": [],
+   "missing_unsupported": [
+    "risk management",
+    "metrics",
+    "director"
+   ],
+   "fit_notes": {
+    "functional": "Role family 'Technical Program Management' aligns well with candidate target families.",
+    "seniority": "Seniority band 'senior' vs candidate senior/lead/director level.",
+    "location_auth": "Role in Toronto / Canada / Remote — strong location match.",
+    "evidence": "5 requirement(s) backed by evidence library items: BELL-TCO-01, BELL-PAYMENTS-01, AMZN-CATALOG-01."
+   }
+  },
   "greenhouse:stripe:8042055": {
    "id": "greenhouse:stripe:8042055",
    "identity": "stripe|technical program manager money as a service",
@@ -1141,7 +1237,7 @@
    "url": "https://stripe.com/jobs/search?gh_jid=8042055",
    "posted_date": "2026-07-07",
    "first_seen": "2026-10-05",
-   "last_seen": "2026-11-17",
+   "last_seen": "2026-11-18",
    "status": "open",
    "flags": [
     "location_unverified"
@@ -1190,7 +1286,7 @@
    "url": "https://stripe.com/jobs/search?gh_jid=8114397",
    "posted_date": "2026-08-07",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-11-17",
+   "last_seen": "2026-11-18",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -1234,7 +1330,7 @@
    "url": "https://stripe.com/jobs/search?gh_jid=8282859",
    "posted_date": "2026-10-15",
    "first_seen": "2026-10-15",
-   "last_seen": "2026-11-17",
+   "last_seen": "2026-11-18",
    "status": "open",
    "flags": [
     "location_unverified"
@@ -1366,7 +1462,7 @@
    "url": "https://job-boards.greenhouse.io/tenstorrent/jobs/5249598007",
    "posted_date": "2026-09-29",
    "first_seen": "2026-10-01",
-   "last_seen": "2026-11-17",
+   "last_seen": "2026-11-18",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -1414,7 +1510,7 @@
    "url": "https://job-boards.greenhouse.io/tenstorrent/jobs/5265014007",
    "posted_date": "2026-10-13",
    "first_seen": "2026-10-14",
-   "last_seen": "2026-11-17",
+   "last_seen": "2026-11-18",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -1461,7 +1557,7 @@
    "url": "https://job-boards.greenhouse.io/tenstorrent/jobs/5270577007",
    "posted_date": "2026-10-21",
    "first_seen": "2026-10-22",
-   "last_seen": "2026-11-17",
+   "last_seen": "2026-11-18",
    "status": "open",
    "flags": [],
    "compensation": null,
@@ -4073,6 +4169,51 @@
     "Twilio": 115,
     "Figma": 140,
     "Robinhood": 166
+   }
+  },
+  {
+   "started_at": "2026-11-18T10:51:58+00:00",
+   "fetched": 6704,
+   "passed_filter": 20,
+   "new": 2,
+   "updated": 18,
+   "closed": 0,
+   "new_tier1": 1,
+   "new_tier2": 1,
+   "source_errors": [
+    {
+     "source": "adzuna",
+     "company": "—",
+     "error": "not configured (set ADZUNA_APP_ID / ADZUNA_APP_KEY)"
+    }
+   ],
+   "sources": {
+    "Wealthsimple": 41,
+    "Cohere": 127,
+    "1Password": 76,
+    "KOHO": 9,
+    "Ramp": 181,
+    "Notion": 167,
+    "OpenAI": 837,
+    "Faire": 71,
+    "Instacart": 83,
+    "Okta": 358,
+    "Scale AI": 167,
+    "Coinbase": 256,
+    "Databricks": 897,
+    "Tenstorrent": 133,
+    "Anthropic": 656,
+    "Stripe": 789,
+    "Airbnb": 199,
+    "Dropbox": 40,
+    "Pinterest": 175,
+    "Lyft": 148,
+    "Cloudflare": 482,
+    "Twilio": 110,
+    "Figma": 143,
+    "Robinhood": 166,
+    "Palantir": 301,
+    "Spotify": 92
    }
   }
  ]
